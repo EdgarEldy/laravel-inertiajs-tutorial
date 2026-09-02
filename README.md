@@ -18,6 +18,7 @@ This document is the **complete specification** of the project: it is meant to b
 - [Project structure](#project-structure)
 - [Conventions for success, validation, and errors](#conventions-for-success-validation-and-errors)
 - [Testing strategy](#testing-strategy)
+- [Internationalization](#internationalization)
 - [feature/core-architecture](#featurecore-architecture)
 - [feature/jetstream-auth](#featurejetstream-auth)
 - [feature/rbac](#featurerbac)
@@ -255,6 +256,15 @@ Every branch's checklist includes tests on both sides of the stack, at every lay
 
 E2E and Vitest tests are not redundant with each other: a Playwright test proves the whole stack works together for a real user flow but is slow and expensive to write for every edge case, while a Vitest unit test proves one component's own logic quickly but says nothing about whether the backend actually returns what that component expects. Both layers are written for every branch from `feature/rbac` onward (the first branch with `Data.vue`/`Form.vue` components to unit-test), Playwright specifically from `feature/categories` onward per each branch's task checklist.
 
+## Internationalization
+
+This project is bilingual, English and French, throughout - not an afterthought bolted on at the end:
+
+- **Backend**: standard Laravel translation files (`lang/en/`, `lang/fr/`), covering validation messages, auth messages, and any other server-side string. A `SetLocale` middleware reads the visitor's chosen locale from session and calls `App::setLocale()` for the rest of the request, falling back to `config('app.locale')` (English) when nothing is in session yet.
+- **Frontend**: [laravel-vue-i18n](https://github.com/xiCO2k/laravel-vue-i18n) reads the exact same `lang/` files directly from Vue via its own Vite plugin - one set of translation files for both sides of the stack, not a duplicated set of frontend-only JSON strings that could drift from the backend's own validation messages.
+- **Switching languages**: a language switcher in `AppLayout.vue`'s header posts to `POST /locale`, which stores the choice in session and redirects back - no locale segment in the URL, no client-side locale state to keep in sync with the server's.
+- **Scope**: every page this project renders is translated, including Jetstream's own scaffolded pages (login, register, profile, 2FA) - not just the pages this tutorial adds on top. A hardcoded English string in a Vue template or a validation message is a defect, the same way a hand-typed URL string bypassing Wayfinder would be.
+
 ## feature/core-architecture
 
 ### Tasks
@@ -266,6 +276,7 @@ E2E and Vitest tests are not redundant with each other: a Playwright test proves
 - [x] `docker-compose.yml` (app + MySQL)
 - [x] `.github/workflows/ci.yml`: `composer install`, `npm install`, `php artisan test` (Pest), `npm run build`
 - [x] Base `.env.example` with database and mail (SMTP against a local MailHog instance) configuration
+- [x] Backend internationalization foundation: English/French translation files (`lang/en/`, `lang/fr/`), `SetLocale` middleware (session-based, falls back to `config('app.locale')`), `POST /locale` route - see [Internationalization](#internationalization)
 
 ## feature/jetstream-auth
 
@@ -278,6 +289,7 @@ E2E and Vitest tests are not redundant with each other: a Playwright test proves
 - [x] Mail driver set to `smtp` against a local **MailHog** instance (`docker-compose.yml` service, SMTP on `1025`, web UI on `8025`) for local development - verification/reset emails are genuinely sent and inspectable in MailHog's inbox, without requiring a real mail provider
 - [x] Verify Jetstream's own pages work end to end before building anything new on top: register → verify email → login → enable 2FA → update profile
 - [x] Pest feature tests (Jetstream ships with its own, but confirm they run) covering registration, login, and email verification
+- [ ] `laravel-vue-i18n` installed and wired into `vite.config.js`; a language switcher added to `AppLayout.vue` posting to `POST /locale`; every Jetstream page (Login, Register, Profile, 2FA, ...) translated into `lang/en/`/`lang/fr/` - see [Internationalization](#internationalization)
 
 ## feature/rbac
 
