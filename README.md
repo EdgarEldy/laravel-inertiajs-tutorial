@@ -103,7 +103,7 @@ Every resource with a Create/Edit flow (`Roles`, `Permissions`, `Categories`, `P
 | Business logic organization | Service classes (one per resource: `RoleService`, `CategoryService`, ...), concrete classes with no interface, keeping controllers thin - see [Code conventions](#code-conventions) |
 | Validation | Laravel Form Requests |
 | Code style | Laravel Pint |
-| Tests | Pest v4 (feature tests via Laravel's testing helpers and Inertia's assertion macros, plus Pest's browser testing plugin for true end-to-end Vue page tests) **and** Vitest + Vue Test Utils (isolated unit tests per Vue component, `resources/js/Pages/{Resource}/Partials/*.spec.js`) - two different layers, not a replacement for one another: Pest browser tests drive a real browser against the fully rendered app end to end, Vitest tests one component's logic/rendering in isolation without a server or a browser |
+| Tests | Pest v4 (unit and feature tests via Laravel's testing helpers and Inertia's assertion macros) **for the backend**; Playwright (`tests/Browser/*.spec.js`) for real end-to-end browser tests against the fully rendered app; Vitest + Vue Test Utils (`resources/js/Pages/{Resource}/Partials/*.spec.js`) for isolated/composed Vue component tests **for the frontend** - three distinct layers, not substitutes for one another (see [Testing strategy](#testing-strategy)) |
 | CI/CD | GitHub Actions |
 | Containerization | Docker, docker-compose |
 
@@ -221,7 +221,7 @@ laravel-inertia-vue-tutorial/
 │   ├── Feature/
 │   │   ├── UserManagementTest.php, RoleTest.php, PermissionTest.php
 │   │   ├── CategoryTest.php, ProductTest.php, CustomerTest.php, OrderTest.php
-│   └── Browser/                                   (Pest v4 browser testing plugin, full Vue page interactions)
+│   └── Browser/                                   (Playwright, *.spec.js, full Vue page interactions in a real browser)
 ├── docker-compose.yml
 ├── Dockerfile
 ├── .github/workflows/ci.yml
@@ -247,11 +247,13 @@ Every branch's checklist includes tests on both sides of the stack, at every lay
 |---|---|---|
 | Laravel unit | Pest (`tests/Unit/`) | A `Service` method's logic in isolation where isolating it is actually informative (e.g. `OrderService::placeOrder()`'s total computation) |
 | Laravel feature/integration | Pest (`tests/Feature/`) | Every route, permission-denied/unauthenticated cases, validation failures, business-rule rejections, `AuditLogger` calls - against the real HTTP stack and a real MySQL database, never mocked |
-| Laravel/Inertia E2E | Pest v4 browser plugin (`tests/Browser/`) | Real create/edit/delete flows through the actually-rendered Vue pages, from `feature/categories` onward |
+| Laravel/Inertia E2E | Playwright (`tests/Browser/*.spec.js`) | Real create/edit/delete flows through the actually-rendered Vue pages, from `feature/categories` onward |
 | Vue unit | Vitest + Vue Test Utils (`resources/js/Pages/{Resource}/Partials/*.spec.js`) | One component in isolation - `Form.vue`'s `useForm()` state transitions, `Data.vue`'s emitted events - from `feature/rbac` onward |
 | Vue integration | Vitest + Vue Test Utils | Multiple real (not mocked) components composed together - `Index.vue` + `Data.vue` + `Form.vue` - catching a wiring bug between components that each pass in isolation |
 
-Pest feature/browser tests and Vitest unit/integration tests are not redundant with each other: a browser test proves the whole stack works together for a real user flow but is slow and expensive to write for every edge case, while a Vitest unit test proves one component's own logic quickly but says nothing about whether the backend actually returns what that component expects. Both layers are written for every branch from `feature/rbac` onward (the first branch with `Data.vue`/`Form.vue` components to unit-test).
+**Why Playwright instead of Pest's own browser testing plugin**: `pestphp/pest-plugin-browser` requires PHP 8.3+, and this project is pinned to PHP 8.2 (see [Tech stack](#tech-stack)) - the two requirements cannot both hold. Playwright achieves the same outcome (a real Chromium browser driving the actually-rendered Vue pages against a running `php artisan serve`) without a PHP version bump; Pest itself is unaffected and still used for every Laravel-side test, since only the browser plugin add-on has the higher PHP requirement.
+
+E2E and Vitest tests are not redundant with each other: a Playwright test proves the whole stack works together for a real user flow but is slow and expensive to write for every edge case, while a Vitest unit test proves one component's own logic quickly but says nothing about whether the backend actually returns what that component expects. Both layers are written for every branch from `feature/rbac` onward (the first branch with `Data.vue`/`Form.vue` components to unit-test), Playwright specifically from `feature/categories` onward per each branch's task checklist.
 
 ## feature/core-architecture
 
@@ -260,6 +262,7 @@ Pest feature/browser tests and Vitest unit/integration tests are not redundant w
 - [ ] Create the project (`laravel new laravel-inertia-vue-tutorial`), PHP 8.2, Laravel 12
 - [ ] Configure MySQL as the default database connection
 - [ ] Laravel Pint configured, Pest installed as the default test runner (`pest` replacing PHPUnit's default assertions)
+- [ ] Playwright installed (`@playwright/test`, `playwright.config.js` pointing at `tests/Browser/`) for the E2E layer - installed here rather than a hand-written Pest plugin substitute for `pestphp/pest-plugin-browser`, since that plugin requires PHP 8.3+ and this project stays on PHP 8.2 (see [Testing strategy](#testing-strategy))
 - [ ] `docker-compose.yml` (app + MySQL)
 - [ ] `.github/workflows/ci.yml`: `composer install`, `npm install`, `php artisan test` (Pest), `npm run build`
 - [ ] Base `.env.example` with database and mail (SMTP against a local MailHog instance) configuration
@@ -341,7 +344,7 @@ Full CRUD for roles and permissions, plus user-role management. No page ever man
 - [ ] `CategoryController` (`index`, `store`, `update`, `destroy`), each method thin: validate via the Form Request, delegate to `CategoryService`, redirect
 - [ ] Every route protected as listed above
 - [ ] `Categories/Index.vue` + `Partials/Data.vue` + `Partials/Form.vue` (create/edit modal - see [Create/Edit as modals, not pages](#createedit-as-modals-not-pages)), built from Jetstream's existing components, write actions hidden via the shared `can()` helper for users without `CATEGORY:WRITE`
-- [ ] Pest feature tests for every route including a permission-denied case, a browser test (Pest v4) covering create → edit → delete through the actual rendered Vue pages
+- [ ] Pest feature tests for every route including a permission-denied case, a Playwright test covering create → edit → delete through the actual rendered Vue pages
 - [ ] Vitest unit tests for `Categories/Partials/Data.vue` and `Partials/Form.vue`; a Vitest integration test composing `Index.vue` with both
 
 ## feature/products
@@ -366,7 +369,7 @@ Depends on `feature/categories` existing, since every product references one.
 - [ ] `CategoryService::deleteCategory()` updated: rejects deletion if the category still has products
 - [ ] `ProductController`, routes protected as listed above
 - [ ] `Products/Index.vue` (with a category filter dropdown) + `Partials/Data.vue` + `Partials/Form.vue` (create/edit modal)
-- [ ] Pest feature and browser tests, including the category-deletion rejection case and a permission-denied case
+- [ ] Pest feature tests and Playwright tests, including the category-deletion rejection case and a permission-denied case
 - [ ] Vitest unit tests for `Products/Partials/Data.vue` (including the category filter) and `Partials/Form.vue`; a Vitest integration test composing `Index.vue` with both
 
 ## feature/customers
@@ -388,7 +391,7 @@ Depends on `feature/categories` existing, since every product references one.
 - [ ] `CustomerService::createCustomer()`, `updateCustomer()`, `deleteCustomer()`
 - [ ] `CustomerController`, routes protected as listed above
 - [ ] `Customers/Index.vue` + `Partials/Data.vue` + `Partials/Form.vue` (create/edit modal)
-- [ ] Pest feature and browser tests, including a permission-denied case
+- [ ] Pest feature tests and Playwright tests, including a permission-denied case
 - [ ] Vitest unit tests for `Customers/Partials/Data.vue` and `Partials/Form.vue`; a Vitest integration test composing `Index.vue` with both
 
 ## feature/orders
@@ -408,7 +411,7 @@ Depends on `feature/categories` existing, since every product references one.
 - [ ] `OrderService::placeOrder()`: computes `total = quantity * product.unit_price`, persists the order
 - [ ] `OrderController`, routes protected as listed above
 - [ ] `Orders/Index.vue` (displaying customer and product names, not just ids, via Eloquent eager loading - `Order::with(['customer', 'product'])`) + `Partials/Data.vue` + `Partials/Form.vue` (create-only modal, no edit - orders have no update/delete route)
-- [ ] Pest feature and browser tests, including a full flow: create a category → a product → a customer → an order, verified through the rendered pages, plus a permission-denied case
+- [ ] Pest feature tests and Playwright tests, including a full flow: create a category → a product → a customer → an order, verified through the rendered pages, plus a permission-denied case
 - [ ] Vitest unit tests for `Orders/Partials/Data.vue` and `Partials/Form.vue` (create-only); a Vitest integration test composing `Index.vue` with both
 
 ## Order of work
@@ -453,7 +456,7 @@ Depends on `feature/categories` existing, since every product references one.
 - Laravel Form Requests for validation, and Inertia's automatic error-sharing on failed validation
 - Eloquent relationships and eager loading to avoid N+1 queries in list pages
 - Laravel Wayfinder for typed route references from the frontend
-- Testing an Inertia/Vue application at every layer: Laravel unit and feature tests, Pest browser-driven E2E tests of rendered pages and permission-denied cases, and isolated/composed Vue component tests with Vitest
+- Testing an Inertia/Vue application at every layer: Laravel unit and feature tests (Pest), Playwright browser-driven E2E tests of rendered pages and permission-denied cases, and isolated/composed Vue component tests with Vitest
 - Containerization (Docker, docker-compose)
 - Continuous integration (GitHub Actions)
 
