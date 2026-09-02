@@ -31,12 +31,12 @@ const closeModal = () => {
 </script>
 
 <template>
-    <AppLayout title="Roles">
-        <Head title="Roles" />
+    <AppLayout :title="$t('Roles')">
+        <Head :title="$t('Roles')" />
 
         <template #header>
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                Roles
+                {{ $t('Roles') }}
             </h2>
         </template>
 
