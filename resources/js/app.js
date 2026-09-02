@@ -30,13 +30,18 @@ createInertiaApp({
                     // alongside our lang/en.json, lang/fr.json and, because
                     // of that, also calls this resolver with a "php_"-
                     // prefixed lang (e.g. "php_fr") expecting a second,
-                    // PHP-sourced translation set to merge in. This project
-                    // deliberately keeps those PHP files server-only
-                    // (Laravel's own Validator reads them directly, never
-                    // through Vue) and has no lang/php_*.json counterpart -
-                    // returning { default: {} } short-circuits it instead of
-                    // attempting an import() against a file that doesn't
-                    // exist.
+                    // PHP-sourced translation set to merge in. The plugin
+                    // does generate a real lang/php_en.json / lang/php_fr.json
+                    // on disk for this (its buildStart hook), but only for the
+                    // duration of the Vite build itself - it deletes them
+                    // again in buildEnd, so `import()`-ing one here would
+                    // work at build time yet leave nothing to fetch at
+                    // runtime. This project also keeps those PHP files
+                    // server-only on purpose (Laravel's own Validator reads
+                    // them directly, never through Vue), so there is nothing
+                    // worth merging in anyway - returning { default: {} }
+                    // short-circuits the whole case instead of relying on
+                    // that transient file surviving into the request.
                     if (lang.startsWith('php_')) {
                         return { default: {} };
                     }
