@@ -58,3 +58,28 @@ test('email can not verified with invalid hash', function () {
 })->skip(function () {
     return ! Features::enabled(Features::emailVerification());
 }, 'Email verification not enabled.');
+
+test('unverified users are redirected away from verified-only routes instead of being let through', function () {
+    $user = User::factory()->create([
+        'email_verified_at' => null,
+    ]);
+
+    $response = $this->actingAs($user)->get('/dashboard');
+
+    $response->assertRedirect(route('verification.notice', absolute: false));
+    $response->assertStatus(302);
+})->skip(function () {
+    return ! Features::enabled(Features::emailVerification());
+}, 'Email verification not enabled.');
+
+test('verified users can access verified-only routes', function () {
+    $user = User::factory()->create([
+        'email_verified_at' => now(),
+    ]);
+
+    $response = $this->actingAs($user)->get('/dashboard');
+
+    $response->assertOk();
+})->skip(function () {
+    return ! Features::enabled(Features::emailVerification());
+}, 'Email verification not enabled.');
