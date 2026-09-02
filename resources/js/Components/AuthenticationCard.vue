@@ -1,29 +1,20 @@
 <script setup>
-import { currentLocale } from 'laravel-vue-i18n';
-import { locales, switchLocale } from '@/lib/useLocaleSwitcher';
+import LanguageSwitcher from '@/Components/LanguageSwitcher.vue';
 </script>
 
 <template>
-    <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100">
+    <div class="relative min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100">
         <!-- Every unauthenticated page (login, register, password reset, ...) shares
              this single wrapper, so the language switcher lives here rather than
              duplicated across each one - a visitor's very first page still needs a
              way to change language before AppLayout.vue (the authenticated layout,
-             which carries its own copy of this same switcher) is ever reached. -->
-        <div class="absolute top-4 right-4 flex items-center rounded-md border border-gray-200 bg-white">
-            <button
-                v-for="locale in locales"
-                :key="locale.code"
-                type="button"
-                class="px-2 py-1 text-xs first:rounded-s-md last:rounded-e-md focus:outline-none"
-                :class="currentLocale === locale.code
-                    ? 'bg-gray-800 text-white font-semibold'
-                    : 'text-gray-500 hover:text-gray-700'"
-                @click="switchLocale(locale.code)"
-            >
-                {{ locale.label }}
-            </button>
-        </div>
+             which carries its own copy of this same switcher) is ever reached.
+             `relative` on this wrapper is required, not decorative: without it the
+             switcher's `absolute` positioning below has no containing block of its
+             own to anchor to, and falls back to the initial containing block
+             instead - positioned correctly by coincidence on a short page, adrift
+             on a longer one. -->
+        <LanguageSwitcher class="absolute top-4 right-4 bg-white" />
 
         <div>
             <slot name="logo" />

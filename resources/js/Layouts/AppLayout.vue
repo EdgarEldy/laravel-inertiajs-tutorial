@@ -1,12 +1,11 @@
 <script setup>
 import { ref } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { currentLocale } from 'laravel-vue-i18n';
-import { locales, switchLocale } from '@/lib/useLocaleSwitcher';
 import ApplicationMark from '@/Components/ApplicationMark.vue';
 import Banner from '@/Components/Banner.vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
+import LanguageSwitcher from '@/Components/LanguageSwitcher.vue';
 import NavLink from '@/Components/NavLink.vue';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
 
@@ -57,21 +56,7 @@ const logout = () => {
                         </div>
 
                         <div class="hidden sm:flex sm:items-center sm:ms-6">
-                            <!-- Language Switcher -->
-                            <div class="flex items-center rounded-md border border-gray-200">
-                                <button
-                                    v-for="locale in locales"
-                                    :key="locale.code"
-                                    type="button"
-                                    class="px-2 py-1 text-xs first:rounded-s-md last:rounded-e-md focus:outline-none"
-                                    :class="currentLocale === locale.code
-                                        ? 'bg-gray-800 text-white font-semibold'
-                                        : 'text-gray-500 hover:text-gray-700'"
-                                    @click="switchLocale(locale.code)"
-                                >
-                                    {{ locale.label }}
-                                </button>
-                            </div>
+                            <LanguageSwitcher />
 
                             <div class="ms-3 relative">
                                 <!-- Teams Dropdown -->
@@ -232,18 +217,7 @@ const logout = () => {
                         </div>
 
                         <div class="flex items-center px-4 mt-3">
-                            <button
-                                v-for="locale in locales"
-                                :key="locale.code"
-                                type="button"
-                                class="px-2 py-1 text-xs me-2 rounded-md focus:outline-none"
-                                :class="currentLocale === locale.code
-                                    ? 'bg-gray-800 text-white font-semibold'
-                                    : 'text-gray-500 border border-gray-200'"
-                                @click="switchLocale(locale.code)"
-                            >
-                                {{ locale.label }}
-                            </button>
+                            <LanguageSwitcher />
                         </div>
 
                         <div class="mt-3 space-y-1">
