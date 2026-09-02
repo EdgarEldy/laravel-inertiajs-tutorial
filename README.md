@@ -96,6 +96,7 @@ Every resource with a Create/Edit flow (`Roles`, `Permissions`, `Categories`, `P
 | Build tool | Vite |
 | Route generation for JS | Laravel Wayfinder (typed route helpers generated from PHP routes, used in Vue instead of hand-written URL strings) |
 | Database | MySQL 8.0 (via Docker Compose) |
+| Mail (local dev) | MailHog (via Docker Compose) - SMTP catcher, real registration/verification/reset emails inspectable in its web UI |
 | ORM | Eloquent |
 | Migrations | Laravel migrations, each feature's own permissions seeded alongside its own tables |
 | Business logic organization | Service classes (one per resource: `RoleService`, `CategoryService`, ...), concrete classes with no interface, keeping controllers thin - see [Code conventions](#code-conventions) |
@@ -246,7 +247,7 @@ There is no JSON response envelope in this project - Inertia's own conventions a
 - [ ] Laravel Pint configured, Pest installed as the default test runner (`pest` replacing PHPUnit's default assertions)
 - [ ] `docker-compose.yml` (app + MySQL)
 - [ ] `.github/workflows/ci.yml`: `composer install`, `npm install`, `php artisan test` (Pest), `npm run build`
-- [ ] Base `.env.example` with database and mail (log driver) configuration
+- [ ] Base `.env.example` with database and mail (SMTP against a local MailHog instance) configuration
 
 ## feature/jetstream-auth
 
@@ -256,7 +257,7 @@ There is no JSON response envelope in this project - Inertia's own conventions a
 - [ ] `npm install && npm run build`, run the generated migrations (`users`, Jetstream's supporting tables)
 - [ ] Teams feature left **disabled** (`Jetstream::useTeams()` not called)
 - [ ] Two-factor authentication enabled in Jetstream's feature flags (`Features::twoFactorAuthentication()`)
-- [ ] Mail driver set to `log` for local development, so verification/reset emails are inspectable in the log rather than requiring a real mail provider
+- [ ] Mail driver set to `smtp` against a local **MailHog** instance (`docker-compose.yml` service, SMTP on `1025`, web UI on `8025`) for local development - verification/reset emails are genuinely sent and inspectable in MailHog's inbox, without requiring a real mail provider
 - [ ] Verify Jetstream's own pages work end to end before building anything new on top: register → verify email → login → enable 2FA → update profile
 - [ ] Pest feature tests (Jetstream ships with its own, but confirm they run) covering registration, login, and email verification
 
@@ -441,4 +442,5 @@ Depends on `feature/categories` existing, since every product references one.
 1. Clone the repository and check out `develop`
 2. Follow the branches in order: `feature/core-architecture` → `feature/jetstream-auth` → `feature/rbac` → `feature/categories` → `feature/products` → `feature/customers` → `feature/orders`
 3. Run `docker-compose up`, `php artisan migrate --seed`, `npm run dev`
-4. Register the first account through Jetstream's own UI (automatically granted `ADMIN`), then navigate to `/users` to promote a second account, or to `/roles`, `/categories`, `/products`, `/customers`, `/orders` directly
+4. Register the first account through Jetstream's own UI (automatically granted `ADMIN`) - the verification email is genuinely sent via SMTP and lands in MailHog's web UI at `http://localhost:8025`, not just written to a log file
+5. Navigate to `/users` to promote a second account, or to `/roles`, `/categories`, `/products`, `/customers`, `/orders` directly
