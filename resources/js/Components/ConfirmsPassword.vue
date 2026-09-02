@@ -1,5 +1,6 @@
 <script setup>
 import { ref, reactive, nextTick } from 'vue';
+import { trans } from 'laravel-vue-i18n';
 import DialogModal from './DialogModal.vue';
 import InputError from './InputError.vue';
 import PrimaryButton from './PrimaryButton.vue';
@@ -11,15 +12,15 @@ const emit = defineEmits(['confirmed']);
 defineProps({
     title: {
         type: String,
-        default: 'Confirm Password',
+        default: () => trans('Confirm Password'),
     },
     content: {
         type: String,
-        default: 'For your security, please confirm your password to continue.',
+        default: () => trans('For your security, please confirm your password to continue.'),
     },
     button: {
         type: String,
-        default: 'Confirm',
+        default: () => trans('Confirm'),
     },
 });
 
@@ -90,7 +91,7 @@ const closeModal = () => {
                         v-model="form.password"
                         type="password"
                         class="mt-1 block w-3/4"
-                        placeholder="Password"
+                        :placeholder="$t('Password')"
                         autocomplete="current-password"
                         @keyup.enter="confirmPassword"
                     />
