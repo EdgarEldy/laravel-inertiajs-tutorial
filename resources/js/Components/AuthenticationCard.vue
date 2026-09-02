@@ -1,22 +1,6 @@
 <script setup>
-import { router } from '@inertiajs/vue3';
-import { currentLocale, loadLanguageAsync } from 'laravel-vue-i18n';
-import { update as updateLocale } from '@/actions/App/Http/Controllers/LocaleController';
-
-const locales = [
-    { code: 'en', label: 'EN' },
-    { code: 'fr', label: 'FR' },
-];
-
-const switchLocale = async (locale) => {
-    // See AppLayout.vue's own switchLocale for why loadLanguageAsync is
-    // called before (not instead of) persisting the choice server-side.
-    await loadLanguageAsync(locale);
-
-    router.post(updateLocale().url, { locale }, {
-        preserveScroll: true,
-    });
-};
+import { currentLocale } from 'laravel-vue-i18n';
+import { locales, switchLocale } from '@/lib/useLocaleSwitcher';
 </script>
 
 <template>
