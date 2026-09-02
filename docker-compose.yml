@@ -12,11 +12,23 @@ services:
       DB_DATABASE: laravel_inertia_tutorial
       DB_USERNAME: laravel
       DB_PASSWORD: secret
+      MAIL_MAILER: smtp
+      MAIL_HOST: mailhog
+      MAIL_PORT: 1025
     depends_on:
       mysql:
         condition: service_healthy
+      mailhog:
+        condition: service_started
     volumes:
       - .:/var/www/html
+
+  mailhog:
+    image: mailhog/mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
 
   mysql:
     image: mysql:8.0
