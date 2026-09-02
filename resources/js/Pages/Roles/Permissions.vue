@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
+import { trans } from 'laravel-vue-i18n';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import Checkbox from '@/Components/Checkbox.vue';
 import InputError from '@/Components/InputError.vue';
@@ -34,22 +35,24 @@ const toggle = (permission: Permission, checked: boolean) => {
         router.delete(RoleController.removePermission.url([props.role.id, permission.id]), { preserveScroll: true });
     }
 };
+
+const pageTitle = computed(() => trans(':role - Permissions', { role: props.role.role_name }));
 </script>
 
 <template>
-    <AppLayout :title="`${role.role_name} - Permissions`">
-        <Head :title="`${role.role_name} - Permissions`" />
+    <AppLayout :title="pageTitle">
+        <Head :title="pageTitle" />
 
         <template #header>
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                Permissions for "{{ role.role_name }}"
+                {{ $t('Permissions for :role', { role: role.role_name }) }}
             </h2>
         </template>
 
         <div class="py-12">
             <div class="max-w-3xl mx-auto sm:px-6 lg:px-8 space-y-6">
                 <Link :href="rolesIndex.url()" class="text-sm text-indigo-600 hover:text-indigo-900">
-                    &larr; Back to roles
+                    &larr; {{ $t('Back to roles') }}
                 </Link>
 
                 <InputError :message="errors.permission" class="mt-2" />
