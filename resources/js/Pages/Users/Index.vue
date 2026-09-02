@@ -22,12 +22,12 @@ const runSearch = () => {
 </script>
 
 <template>
-    <AppLayout title="Users">
-        <Head title="Users" />
+    <AppLayout :title="$t('Users')">
+        <Head :title="$t('Users')" />
 
         <template #header>
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                Users
+                {{ $t('Users') }}
             </h2>
         </template>
 
@@ -38,7 +38,7 @@ const runSearch = () => {
                         <TextInput
                             v-model="search"
                             type="search"
-                            placeholder="Search users..."
+                            :placeholder="$t('Search users...')"
                             class="w-full max-w-xs"
                             @keyup.enter="runSearch"
                             @blur="runSearch"
@@ -48,10 +48,10 @@ const runSearch = () => {
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead>
                             <tr>
-                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Roles</th>
-                                <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">{{ $t('Name') }}</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">{{ $t('Email') }}</th>
+                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">{{ $t('Roles') }}</th>
+                                <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">{{ $t('Actions') }}</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-200">
@@ -63,12 +63,12 @@ const runSearch = () => {
                                 </td>
                                 <td class="px-3 py-2 text-sm text-right">
                                     <Link :href="UserController.show.url(user.id)" class="text-indigo-600 hover:text-indigo-900">
-                                        View
+                                        {{ $t('View') }}
                                     </Link>
                                 </td>
                             </tr>
                             <tr v-if="users.data.length === 0">
-                                <td colspan="4" class="px-3 py-6 text-center text-sm text-gray-500">No users found.</td>
+                                <td colspan="4" class="px-3 py-6 text-center text-sm text-gray-500">{{ $t('No users found.') }}</td>
                             </tr>
                         </tbody>
                     </table>
