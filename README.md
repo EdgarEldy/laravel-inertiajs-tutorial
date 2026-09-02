@@ -199,7 +199,7 @@ laravel-inertia-vue-tutorial/
 │   │   ├── ..._create_customers_table.php    (feature/customers: also seeds CUSTOMER:READ/WRITE, assigned to ADMIN)
 │   │   └── ..._create_orders_table.php       (feature/orders: also seeds ORDER:READ/WRITE, assigned to ADMIN)
 │   ├── seeders/
-│   │   └── RbacPermissionSeeder.php          (feature/rbac's own permissions only: ROLE:*, PERMISSION:*, USER:*)
+│   │   └── PermissionSeeder.php              (feature/rbac's own permissions only: ROLE:*, PERMISSION:*, USER:*)
 │   └── factories/
 │       ├── RoleFactory.php, PermissionFactory.php
 │       ├── CategoryFactory.php, ProductFactory.php, CustomerFactory.php, OrderFactory.php
@@ -323,7 +323,7 @@ Full CRUD for roles and permissions, plus user-role management. No page ever man
 - [ ] `User` model extended: `roles()` (`belongsToMany(Role::class, 'role_user')`), `hasPermission(string $resource, string $action): bool`
 - [ ] `AuthServiceProvider`: `Gate::before` closure implementing the `RESOURCE:ACTION` permission check described [above](#how-permissions-are-checked)
 - [ ] `AssignDefaultRoleOnRegistration` listener, registered against Jetstream's `Registered` event: assigns `ADMIN` to the first user ever created, `USER` to everyone after
-- [ ] `RbacPermissionSeeder`: seeds only this branch's own permissions (`ROLE:READ`, `ROLE:WRITE`, `PERMISSION:READ`, `PERMISSION:WRITE`, `USER:READ`, `USER:WRITE`), assigned to a seeded `ADMIN` role - later branches seed their own resource's permissions from their own migrations rather than all being declared here up front
+- [ ] `PermissionSeeder`: seeds only this branch's own permissions (`ROLE:READ`, `ROLE:WRITE`, `PERMISSION:READ`, `PERMISSION:WRITE`, `USER:READ`, `USER:WRITE`), assigned to a seeded `ADMIN` role - later branches seed their own resource's permissions from their own migrations rather than all being declared here up front
 - [ ] `AuditLogger` service, with a single `log(string $action, string $entityType, int $entityId, array $details = [])` method
 - [ ] `Services/Concerns/LogsAuditEvents.php` trait: `logCreated`/`logUpdated`/`logDeleted`/`logAssigned`/`logRemoved` helpers wrapping `AuditLogger::log()`, mixed into `RoleService`, `PermissionService`, `UserService`
 - [ ] `RoleService::createRole()`, `updateRole()`, `deleteRole()` - `deleteRole` rejects if any user is still assigned this role (must be unassigned first)
