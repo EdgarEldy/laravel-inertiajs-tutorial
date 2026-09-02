@@ -40,7 +40,7 @@ watchEffect(async () => {
                             type="button"
                             class="-me-1 flex p-2 rounded-md focus:outline-none sm:-me-2 transition"
                             :class="{ 'hover:bg-indigo-600 focus:bg-indigo-600': style == 'success', 'hover:bg-red-600 focus:bg-red-600': style == 'danger' }"
-                            aria-label="Dismiss"
+                            :aria-label="$t('Dismiss')"
                             @click.prevent="show = false"
                         >
                             <svg class="size-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
