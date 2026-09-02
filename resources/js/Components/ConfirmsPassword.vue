@@ -102,7 +102,7 @@ const closeModal = () => {
 
             <template #footer>
                 <SecondaryButton @click="closeModal">
-                    Cancel
+                    {{ $t('Cancel') }}
                 </SecondaryButton>
 
                 <PrimaryButton
