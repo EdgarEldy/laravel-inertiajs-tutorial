@@ -31,5 +31,8 @@
         "vitest": "^4.1.11",
         "vue": "^3.3.13",
         "vue-tsc": "^3.3.11"
+    },
+    "dependencies": {
+        "laravel-vue-i18n": "^2.8.0"
     }
 }
