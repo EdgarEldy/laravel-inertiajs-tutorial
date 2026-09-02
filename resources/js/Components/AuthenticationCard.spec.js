@@ -20,11 +20,16 @@ vi.mock('@/actions/App/Http/Controllers/LocaleController', () => ({
 }));
 
 import AuthenticationCard from './AuthenticationCard.vue';
+import { isSwitchingLocale } from '@/lib/useLocaleSwitcher';
 
 describe('AuthenticationCard language switcher', () => {
     beforeEach(() => {
         loadLanguageAsyncMock.mockClear();
         routerPostMock.mockClear();
+        // isSwitchingLocale is real (unmocked) module state from
+        // useLocaleSwitcher - reset it between tests so one test's
+        // in-flight switch doesn't leave the next test's buttons disabled.
+        isSwitchingLocale.value = false;
     });
 
     it('renders one button per supported locale', () => {
