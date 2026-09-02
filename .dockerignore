@@ -1,0 +1,17 @@
+vendor/
+node_modules/
+public/build/
+public/hot
+storage/framework/cache/
+storage/framework/sessions/
+storage/framework/views/
+storage/logs/
+.git/
+.github/
+.claude/
+.env
+.env.testing
+*.md
+docker-compose.yml
+Dockerfile
+.dockerignore
