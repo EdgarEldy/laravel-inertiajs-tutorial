@@ -48,12 +48,12 @@ const close = () => {
 <template>
     <DialogModal :show="show" @close="close">
         <template #title>
-            {{ role ? 'Edit Role' : 'Create Role' }}
+            {{ role ? $t('Edit Role') : $t('Create Role') }}
         </template>
 
         <template #content>
             <div>
-                <InputLabel for="role_name" value="Role name" />
+                <InputLabel for="role_name" :value="$t('Role name')" />
                 <TextInput
                     id="role_name"
                     v-model="form.role_name"
@@ -68,7 +68,7 @@ const close = () => {
 
         <template #footer>
             <SecondaryButton @click="close">
-                Cancel
+                {{ $t('Cancel') }}
             </SecondaryButton>
 
             <PrimaryButton
@@ -77,7 +77,7 @@ const close = () => {
                 :disabled="form.processing"
                 @click="submit"
             >
-                {{ role ? 'Save' : 'Create' }}
+                {{ role ? $t('Save') : $t('Create') }}
             </PrimaryButton>
         </template>
     </DialogModal>
