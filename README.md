@@ -259,13 +259,13 @@ E2E and Vitest tests are not redundant with each other: a Playwright test proves
 
 ### Tasks
 
-- [ ] Create the project (`laravel new laravel-inertia-vue-tutorial`), PHP 8.2, Laravel 12
-- [ ] Configure MySQL as the default database connection
-- [ ] Laravel Pint configured, Pest installed as the default test runner (`pest` replacing PHPUnit's default assertions)
-- [ ] Playwright installed (`@playwright/test`, `playwright.config.js` pointing at `tests/Browser/`) for the E2E layer - installed here rather than a hand-written Pest plugin substitute for `pestphp/pest-plugin-browser`, since that plugin requires PHP 8.3+ and this project stays on PHP 8.2 (see [Testing strategy](#testing-strategy))
-- [ ] `docker-compose.yml` (app + MySQL)
-- [ ] `.github/workflows/ci.yml`: `composer install`, `npm install`, `php artisan test` (Pest), `npm run build`
-- [ ] Base `.env.example` with database and mail (SMTP against a local MailHog instance) configuration
+- [x] Create the project (`laravel new laravel-inertia-vue-tutorial`), PHP 8.2, Laravel 12
+- [x] Configure MySQL as the default database connection
+- [x] Laravel Pint configured, Pest installed as the default test runner (`pest` replacing PHPUnit's default assertions)
+- [x] Playwright installed (`@playwright/test`, `playwright.config.js` pointing at `tests/Browser/`) for the E2E layer - installed here rather than a hand-written Pest plugin substitute for `pestphp/pest-plugin-browser`, since that plugin requires PHP 8.3+ and this project stays on PHP 8.2 (see [Testing strategy](#testing-strategy))
+- [x] `docker-compose.yml` (app + MySQL)
+- [x] `.github/workflows/ci.yml`: `composer install`, `npm install`, `php artisan test` (Pest), `npm run build`
+- [x] Base `.env.example` with database and mail (SMTP against a local MailHog instance) configuration
 
 ## feature/jetstream-auth
 
