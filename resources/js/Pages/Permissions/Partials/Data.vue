@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
+import { trans } from 'laravel-vue-i18n';
 import DangerButton from '@/Components/DangerButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
@@ -28,7 +29,7 @@ const runSearch = () => {
 };
 
 const destroy = (permission: Permission) => {
-    if (confirm(`Delete the "${permission.name}" permission? This cannot be undone.`)) {
+    if (confirm(trans('Delete the ":name" permission? This cannot be undone.', { name: permission.name }))) {
         router.delete(PermissionController.destroy.url(permission.id), { preserveScroll: true });
     }
 };
@@ -40,23 +41,23 @@ const destroy = (permission: Permission) => {
             <TextInput
                 v-model="search"
                 type="search"
-                placeholder="Search permissions..."
+                :placeholder="$t('Search permissions...')"
                 class="w-full max-w-xs"
                 @keyup.enter="runSearch"
                 @blur="runSearch"
             />
 
             <SecondaryButton v-if="can('PERMISSION:WRITE')" @click="emit('create')">
-                Create Permission
+                {{ $t('Create Permission') }}
             </SecondaryButton>
         </div>
 
         <table class="min-w-full divide-y divide-gray-200">
             <thead>
                 <tr>
-                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Roles</th>
-                    <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">{{ $t('Name') }}</th>
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">{{ $t('Roles') }}</th>
+                    <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">{{ $t('Actions') }}</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-200">
@@ -70,15 +71,15 @@ const destroy = (permission: Permission) => {
                             class="text-indigo-600 hover:text-indigo-900"
                             @click="emit('edit', permission)"
                         >
-                            Edit
+                            {{ $t('Edit') }}
                         </button>
                         <DangerButton v-if="can('PERMISSION:WRITE')" @click="destroy(permission)">
-                            Delete
+                            {{ $t('Delete') }}
                         </DangerButton>
                     </td>
                 </tr>
                 <tr v-if="permissions.data.length === 0">
-                    <td colspan="3" class="px-3 py-6 text-center text-sm text-gray-500">No permissions found.</td>
+                    <td colspan="3" class="px-3 py-6 text-center text-sm text-gray-500">{{ $t('No permissions found.') }}</td>
                 </tr>
             </tbody>
         </table>
