@@ -1,0 +1,443 @@
+# laravel-inertia-vue-tutorial
+
+A complete tutorial for building a full-stack application with **Laravel 12**, **Inertia.js v3**, and **Vue 3**, using **Laravel Jetstream** for authentication, a custom role/permission layer for authorization, and an e-commerce domain (categories, products, customers, orders) built on top.
+
+This document is the **complete specification** of the project: it is meant to be followed step by step to implement each branch.
+
+## Table of contents
+
+- [How Inertia ties Laravel and Vue together](#how-inertia-ties-laravel-and-vue-together)
+- [Jetstream for authentication, a custom layer for authorization](#jetstream-for-authentication-a-custom-layer-for-authorization)
+- [How permissions are checked](#how-permissions-are-checked)
+- [Assignment direction: permissions onto roles, roles onto users](#assignment-direction-permissions-onto-roles-roles-onto-users)
+- [Design system: reusing Jetstream's own components, not a new one](#design-system-reusing-jetstreams-own-components-not-a-new-one)
+- [Tech stack](#tech-stack)
+- [Data model](#data-model)
+- [Branching strategy](#branching-strategy)
+- [Project structure](#project-structure)
+- [Conventions for success, validation, and errors](#conventions-for-success-validation-and-errors)
+- [feature/core-architecture](#featurecore-architecture)
+- [feature/jetstream-auth](#featurejetstream-auth)
+- [feature/rbac](#featurerbac)
+- [feature/categories](#featurecategories)
+- [feature/products](#featureproducts)
+- [feature/customers](#featurecustomers)
+- [feature/orders](#featureorders)
+- [Order of work](#order-of-work)
+- [Code conventions](#code-conventions)
+- [Concepts covered](#concepts-covered)
+- [How to follow this tutorial](#how-to-follow-this-tutorial)
+
+## How Inertia ties Laravel and Vue together
+
+Inertia is not a JSON API layer and not a traditional SPA framework - it's a **glue layer** that lets a Laravel controller return a Vue page component directly, with server-side data as props, without either building a REST API or giving up client-side routing and reactivity.
+
+- A route maps to a controller method exactly like classic Laravel; instead of returning a Blade view, it returns `Inertia::render('Products/Index', ['products' => ...])`
+- The first request to any page is a normal full-page load (server-rendered HTML shell); every subsequent navigation is an XHR request that swaps only the page component, using Vue Router-like client-side transitions without Inertia needing its own router
+- Props are just PHP arrays/Eloquent collections serialized to JSON and handed to the Vue component as `defineProps()` - there is no separate DTO layer, no OpenAPI contract, no generated client, because there's no API being consumed by anything other than this app's own frontend
+- Forms use Inertia's `useForm()` composable, which posts to a normal Laravel route and handles validation errors, redirects, and progress state automatically - no manual `fetch`/`axios` wiring
+
+## Jetstream for authentication, a custom layer for authorization
+
+**Laravel Jetstream** (Inertia/Vue stack) provides registration, login, email verification, password reset, profile management, two-factor authentication (TOTP), and browser session management out of the box - all backed by Laravel's native **session-based authentication**, not a token. Jetstream also rate-limits login attempts by default (`throttle:login`, via Fortify), so brute-force protection doesn't need to be added separately in this project. Jetstream answers *who is this user*; it has no concept of roles or permissions, and doesn't try to.
+
+This project adds **role-based access control** as its own layer on top, independent of Jetstream:
+
+- `roles`, `permissions`, and two pivot tables (`role_user`, `role_permission`) - plain Eloquent models and migrations, not a third-party package, so the schema stays exactly what this project needs (resource/action permissions, not a generic tagging system)
+- Jetstream's `User` model gains a `roles()` relationship and a `hasPermission()` method - the only point of contact between the two layers
+- No JWT, no token blacklist: authorization checks read from the database through Eloquent relationships, consistent with the rest of this project staying in Laravel's own session-and-database idiom
+- Jetstream's optional **Teams** feature is still **not enabled** - roles in this project are global (a user has a role, full stop), not scoped per team
+
+## How permissions are checked
+
+Resource/action permissions (`CATEGORY:WRITE`, `ORDER:READ`, ...) are checked through Laravel's own authorization primitives (`Gate`, `can`), not a custom middleware reinventing them:
+
+- `AuthServiceProvider` registers a single `Gate::before` closure: if the ability being checked looks like `RESOURCE:ACTION`, it defers to `$user->hasPermission($resource, $action)`; any other ability falls through to Laravel's normal Gate/Policy resolution untouched
+- Because this is a `Gate::before` hook, every one of Laravel's usual authorization surfaces works without extra wiring: route middleware (`->middleware('can:CATEGORY:WRITE')`), controller checks (`$this->authorize('CATEGORY:WRITE')`), and Vue-side conditional rendering (permissions shared globally via `HandleInertiaRequests`, checked with a small `can()` helper in the frontend)
+- `User::hasPermission()` loads the user's roles and their permissions through Eloquent eager loading, resolved fresh on each request - this project's traffic and role-change frequency don't justify caching permissions across requests
+- **Bootstrapping the first admin**: a listener on Jetstream's `Registered` event checks whether this is the very first user in the system and, if so, assigns the `ADMIN` role automatically. Every other new registration gets the `USER` role. Without this, nobody could ever create the first role assignment, since doing so requires a permission nobody yet holds.
+
+## Assignment direction: permissions onto roles, roles onto users
+
+Both relationships in this system are managed from one deliberate direction, never the other:
+
+- **Permissions are assigned onto a role** (`POST /roles/{role}/permissions/{permission}`), managed from the `Roles` pages. There is no "assign this permission to a role" flow initiated from a `Permissions` page - a permission is a fixed, catalog-like thing (`CATEGORY:WRITE` always means the same thing); a role is the thing being composed out of permissions, so the role is where that composition happens.
+- **Roles are assigned onto a user** (`POST /users/{user}/roles/{role}`), managed from the `Users` pages. There is no "assign this role to a user" flow initiated from a `Roles` page - a role is again the fixed, catalog-like thing here; the user is what's being granted access, so the user is where that grant happens.
+- The pattern is consistent: the *lower-level, catalog* concept (`Permission`, then `Role`) is never the page that manages an assignment; the *higher-level, composed* concept (`Role`, then `User`) always is.
+
+## Design system: reusing Jetstream's own components, not a new one
+
+Every page this tutorial adds (users, roles, permissions, categories, products, customers, orders) is built with **Jetstream's own scaffolded Vue components**, not a new component library introduced on top:
+
+- `PrimaryButton.vue`, `SecondaryButton.vue`, `DangerButton.vue`, `TextInput.vue`, `InputLabel.vue`, `InputError.vue`, `Modal.vue`, `DialogModal.vue`, `ActionSection.vue`, `FormSection.vue` - all generated by Jetstream's installer, already used by its own profile/security pages
+- New pages follow the same layout components Jetstream's own pages use (`AppLayout.vue`), so a `Products/Index.vue` page looks and behaves consistently with `Profile/Show.vue` without extra work
+- No new CSS framework, icon set, or design tokens are introduced - Jetstream ships with Tailwind CSS already configured, and this project stays inside that
+
+## Tech stack
+
+| Component | Choice |
+|---|---|
+| Backend framework | Laravel 12 |
+| Language | PHP 8.2 |
+| Authentication | Laravel Jetstream (Inertia/Vue stack), session-based, built-in login rate limiting |
+| Authorization | Custom `roles`/`permissions` layer, wired into Laravel's `Gate` |
+| Frontend glue | Inertia.js v3 |
+| Frontend framework | Vue 3 (Composition API, TypeScript) |
+| Styling | Tailwind CSS 4 (via Jetstream's scaffolding) |
+| Build tool | Vite |
+| Route generation for JS | Laravel Wayfinder (typed route helpers generated from PHP routes, used in Vue instead of hand-written URL strings) |
+| Database | MySQL 8.0 (via Docker Compose) |
+| ORM | Eloquent |
+| Migrations | Laravel migrations, each feature's own permissions seeded alongside its own tables |
+| Business logic organization | Action classes (one class per business operation), keeping controllers thin - see [Code conventions](#code-conventions) |
+| Validation | Laravel Form Requests |
+| Code style | Laravel Pint |
+| Tests | Pest v4 (feature tests via Laravel's testing helpers and Inertia's assertion macros, plus Pest's browser testing plugin for true end-to-end Vue page tests) |
+| CI/CD | GitHub Actions |
+| Containerization | Docker, docker-compose |
+
+## Data model
+
+Jetstream owns `users` and its own supporting tables (not modeled here, out of this project's direct control). Everything below is this project's own.
+
+```
+roles (id, role_name)
+    │ N──N (via role_user, user_id references Jetstream's users.id)
+    │ N──N (via role_permission)
+permissions (id, resource, action)
+
+audit_logs (id, actor_user_id, action, entity_type, entity_id, details, created_at)
+
+categories (id, category_name)
+    │ 1
+    │
+    │ N
+products (id, category_id, product_name, unit_price)
+    │ 1
+    │
+    │ N
+orders (id, customer_id, product_id, quantity, total)
+    │ N
+    │
+    │ 1
+customers (id, first_name, last_name, telephone, email, address)
+```
+
+## Branching strategy
+
+| Branch | Role |
+|---|---|
+| `master` | Stable, production-ready code. No direct commits, only merges from `develop`. |
+| `develop` | Integration branch. |
+| `feature/core-architecture` | Laravel project setup, MySQL configuration, Docker, CI. |
+| `feature/jetstream-auth` | Jetstream installation and configuration (Inertia/Vue stack, Teams disabled). |
+| `feature/rbac` | `roles`/`permissions`/`role_permission`/`role_user` tables, `Gate::before` check, complete CRUD for roles/permissions/users, audit logging. |
+| `feature/categories` | Category management pages, permission-protected, seeds its own permissions. |
+| `feature/products` | Product management pages, depends on `categories`, seeds its own permissions. |
+| `feature/customers` | Customer management pages, seeds its own permissions. |
+| `feature/orders` | Order placement and listing pages, depends on `products`/`customers`, seeds its own permissions. |
+
+## Project structure
+
+```
+laravel-inertia-vue-tutorial/
+├── app/
+│   ├── Actions/
+│   │   ├── Rbac/
+│   │   │   ├── CreateRole.php, UpdateRole.php, DeleteRole.php
+│   │   │   ├── CreatePermission.php, UpdatePermission.php, DeletePermission.php
+│   │   │   ├── AssignPermissionToRole.php, RemovePermissionFromRole.php
+│   │   │   └── AssignRoleToUser.php, RemoveRoleFromUser.php
+│   │   ├── Categories/ (CreateCategory.php, UpdateCategory.php, DeleteCategory.php)
+│   │   ├── Products/ (CreateProduct.php, UpdateProduct.php, DeleteProduct.php)
+│   │   ├── Customers/ (CreateCustomer.php, UpdateCustomer.php, DeleteCustomer.php)
+│   │   └── Orders/ (PlaceOrder.php)
+│   ├── Http/
+│   │   ├── Controllers/
+│   │   │   ├── RoleController.php, PermissionController.php, UserController.php
+│   │   │   ├── CategoryController.php
+│   │   │   ├── ProductController.php
+│   │   │   ├── CustomerController.php
+│   │   │   └── OrderController.php
+│   │   ├── Requests/
+│   │   │   ├── StoreRoleRequest.php, UpdateRoleRequest.php
+│   │   │   ├── StorePermissionRequest.php, UpdatePermissionRequest.php
+│   │   │   ├── StoreCategoryRequest.php, UpdateCategoryRequest.php
+│   │   │   ├── StoreProductRequest.php, UpdateProductRequest.php
+│   │   │   ├── StoreCustomerRequest.php, UpdateCustomerRequest.php
+│   │   │   └── StoreOrderRequest.php
+│   │   └── Middleware/
+│   │       └── HandleInertiaRequests.php      (Jetstream-generated; also shares the current user's permissions globally)
+│   ├── Listeners/
+│   │   └── AssignDefaultRoleOnRegistration.php  (listens to Jetstream's Registered event)
+│   ├── Models/
+│   │   ├── Role.php, Permission.php, AuditLog.php
+│   │   ├── Category.php, Product.php, Customer.php, Order.php
+│   │   └── User.php                              (Jetstream's default model, extended with roles()/hasPermission())
+│   ├── Services/
+│   │   └── AuditLogger.php                       (single log(action, entityType, entityId, details) method)
+│   └── Providers/
+│       └── AuthServiceProvider.php               (registers the Gate::before permission hook)
+├── database/
+│   ├── migrations/
+│   │   ├── ..._create_roles_table.php, ..._create_permissions_table.php
+│   │   ├── ..._create_role_user_table.php, ..._create_role_permission_table.php
+│   │   ├── ..._create_audit_logs_table.php
+│   │   ├── ..._create_categories_table.php   (feature/categories: also seeds CATEGORY:READ/WRITE, assigned to ADMIN)
+│   │   ├── ..._create_products_table.php     (feature/products: also seeds PRODUCT:READ/WRITE, assigned to ADMIN)
+│   │   ├── ..._create_customers_table.php    (feature/customers: also seeds CUSTOMER:READ/WRITE, assigned to ADMIN)
+│   │   └── ..._create_orders_table.php       (feature/orders: also seeds ORDER:READ/WRITE, assigned to ADMIN)
+│   ├── seeders/
+│   │   └── RbacPermissionSeeder.php          (feature/rbac's own permissions only: ROLE:*, PERMISSION:*, USER:*)
+│   └── factories/
+│       ├── RoleFactory.php, PermissionFactory.php
+│       ├── CategoryFactory.php, ProductFactory.php, CustomerFactory.php, OrderFactory.php
+├── resources/
+│   └── js/
+│       ├── Components/                          (Jetstream-generated, reused as-is - see "Design system")
+│       ├── Layouts/
+│       │   └── AppLayout.vue                     (Jetstream-generated)
+│       └── Pages/
+│           ├── Users/ (Index.vue, Show.vue)
+│           ├── Roles/ (Index.vue, Create.vue, Edit.vue, Permissions.vue)
+│           ├── Permissions/ (Index.vue, Create.vue, Edit.vue)
+│           ├── Categories/ (Index.vue, Create.vue, Edit.vue)
+│           ├── Products/ (Index.vue, Create.vue, Edit.vue, Show.vue)
+│           ├── Customers/ (Index.vue, Create.vue, Edit.vue)
+│           └── Orders/ (Index.vue, Create.vue)
+├── routes/
+│   └── web.php                                    (all routes, Jetstream's own + this project's, session-authenticated and permission-protected)
+├── tests/
+│   ├── Feature/
+│   │   ├── UserManagementTest.php, RoleTest.php, PermissionTest.php
+│   │   ├── CategoryTest.php, ProductTest.php, CustomerTest.php, OrderTest.php
+│   └── Browser/                                   (Pest v4 browser testing plugin, full Vue page interactions)
+├── docker-compose.yml
+├── Dockerfile
+├── .github/workflows/ci.yml
+└── composer.json / package.json
+```
+
+## Conventions for success, validation, and errors
+
+There is no JSON response envelope in this project - Inertia's own conventions are used directly, the same way the rest of this stack (Jetstream's own pages) already works:
+
+- A successful action (create/update/delete) redirects back to the relevant Inertia page, with a flash message set via `session()->flash('flash.banner', '...')` - the same mechanism Jetstream's own profile update page uses, surfaced by the same shared `<Banner />` component in `AppLayout.vue`
+- Validation failures are handled entirely by Laravel's Form Requests: a failed validation redirects back with errors automatically shared to Inertia via `HandleInertiaRequests`, and `useForm()` on the Vue side exposes them as `form.errors.<field>` - bound directly to `InputError.vue`, no manual error-handling code in any page component
+- An authentication failure (a route requiring a session, hit without one) redirects to the login page - Laravel's default `auth` middleware behavior, unchanged
+- An authorization failure (an authenticated user lacking the required permission) renders Inertia's default 403 error page - the result of `Gate::before` denying the ability
+- A "not found" (e.g. `Product::findOrFail()` on a missing id) renders Inertia's default 404 error page
+- A rejected business rule (category still has products, last-admin removal, entity still referenced elsewhere) redirects back with a validation-style error message on the relevant field, surfaced the same way a Form Request failure would be - the user never sees a raw exception
+
+## feature/core-architecture
+
+### Tasks
+
+- [ ] Create the project (`laravel new laravel-inertia-vue-tutorial`), PHP 8.2, Laravel 12
+- [ ] Configure MySQL as the default database connection
+- [ ] Laravel Pint configured, Pest installed as the default test runner (`pest` replacing PHPUnit's default assertions)
+- [ ] `docker-compose.yml` (app + MySQL)
+- [ ] `.github/workflows/ci.yml`: `composer install`, `npm install`, `php artisan test` (Pest), `npm run build`
+- [ ] Base `.env.example` with database and mail (log driver) configuration
+
+## feature/jetstream-auth
+
+### Tasks
+
+- [ ] Install Jetstream with the Inertia stack and Vue: `php artisan jetstream:install inertia`
+- [ ] `npm install && npm run build`, run the generated migrations (`users`, Jetstream's supporting tables)
+- [ ] Teams feature left **disabled** (`Jetstream::useTeams()` not called)
+- [ ] Two-factor authentication enabled in Jetstream's feature flags (`Features::twoFactorAuthentication()`)
+- [ ] Mail driver set to `log` for local development, so verification/reset emails are inspectable in the log rather than requiring a real mail provider
+- [ ] Verify Jetstream's own pages work end to end before building anything new on top: register → verify email → login → enable 2FA → update profile
+- [ ] Pest feature tests (Jetstream ships with its own, but confirm they run) covering registration, login, and email verification
+
+## feature/rbac
+
+Full CRUD for roles and permissions, plus user-role management. No page ever manages an assignment from the "lower-level" side - see [Assignment direction](#assignment-direction-permissions-onto-roles-roles-onto-users).
+
+### Routes
+
+| Method | URL | Page rendered | Description | Access |
+|---|---|---|---|---|
+| GET | `/users` | `Users/Index` | Paginated list | `can:USER:READ` |
+| GET | `/users/{user}` | `Users/Show` | Detail, including assigned roles, with a form to assign another | `can:USER:READ` |
+| POST | `/users/{user}/roles/{role}` | redirect | Assign a role to a user | `can:USER:WRITE` |
+| DELETE | `/users/{user}/roles/{role}` | redirect | Remove a role from a user | `can:USER:WRITE` |
+| GET | `/roles` | `Roles/Index` | List | `can:ROLE:READ` |
+| GET | `/roles/create` | `Roles/Create` | Creation form | `can:ROLE:WRITE` |
+| POST | `/roles` | redirect | Create | `can:ROLE:WRITE` |
+| GET | `/roles/{role}/edit` | `Roles/Edit` | Edit the role's name only | `can:ROLE:WRITE` |
+| PUT | `/roles/{role}` | redirect | Update | `can:ROLE:WRITE` |
+| DELETE | `/roles/{role}` | redirect | Delete | `can:ROLE:WRITE` |
+| GET | `/roles/{role}/permissions` | `Roles/Permissions` | Dedicated page: assign/remove this role's permissions | `can:ROLE:WRITE` |
+| POST | `/roles/{role}/permissions/{permission}` | redirect | Assign a permission to a role | `can:ROLE:WRITE` |
+| DELETE | `/roles/{role}/permissions/{permission}` | redirect | Remove a permission from a role | `can:ROLE:WRITE` |
+| GET | `/permissions` | `Permissions/Index` | List | `can:PERMISSION:READ` |
+| GET | `/permissions/create` | `Permissions/Create` | Creation form | `can:PERMISSION:WRITE` |
+| POST | `/permissions` | redirect | Create | `can:PERMISSION:WRITE` |
+| GET | `/permissions/{permission}/edit` | `Permissions/Edit` | Edit form | `can:PERMISSION:WRITE` |
+| PUT | `/permissions/{permission}` | redirect | Update | `can:PERMISSION:WRITE` |
+| DELETE | `/permissions/{permission}` | redirect | Delete | `can:PERMISSION:WRITE` |
+
+### Tasks
+
+- [ ] `roles`, `permissions`, `role_user`, `role_permission` migrations - `role_user.user_id` references Jetstream's `users.id`
+- [ ] `audit_logs` migration
+- [ ] `Role`, `Permission`, `AuditLog` Eloquent models, with `belongsToMany` relationships in both directions on `Role`/`Permission`/`User`
+- [ ] `User` model extended: `roles()` (`belongsToMany(Role::class, 'role_user')`), `hasPermission(string $resource, string $action): bool`
+- [ ] `AuthServiceProvider`: `Gate::before` closure implementing the `RESOURCE:ACTION` permission check described [above](#how-permissions-are-checked)
+- [ ] `AssignDefaultRoleOnRegistration` listener, registered against Jetstream's `Registered` event: assigns `ADMIN` to the first user ever created, `USER` to everyone after
+- [ ] `RbacPermissionSeeder`: seeds only this branch's own permissions (`ROLE:READ`, `ROLE:WRITE`, `PERMISSION:READ`, `PERMISSION:WRITE`, `USER:READ`, `USER:WRITE`), assigned to a seeded `ADMIN` role - later branches seed their own resource's permissions from their own migrations rather than all being declared here up front
+- [ ] `AuditLogger` service, with a single `log(string $action, string $entityType, int $entityId, array $details = [])` method, called from every Action in `Actions/Rbac/`
+- [ ] `Actions/Rbac/CreateRole.php`, `UpdateRole.php`, `DeleteRole.php` - `DeleteRole` rejects if any user is still assigned this role (must be unassigned first)
+- [ ] `Actions/Rbac/CreatePermission.php`, `UpdatePermission.php`, `DeletePermission.php` - `DeletePermission` rejects if any role still has this permission assigned
+- [ ] `Actions/Rbac/AssignPermissionToRole.php`, `RemovePermissionFromRole.php` - `RemovePermissionFromRole` rejects removing `ROLE:WRITE` from a role if doing so would leave **zero** users anywhere holding a role that grants `ROLE:WRITE` (the role being edited is only one of possibly several sources)
+- [ ] `Actions/Rbac/AssignRoleToUser.php`, `RemoveRoleFromUser.php` - `RemoveRoleFromUser` applies the same last-admin check as above at the point of removal from a specific user, so a self-lockout is caught however it's attempted (removing the permission from the role, or removing the role from the last user who has it)
+- [ ] `RoleController`, `PermissionController`, `UserController` (`index`, `show` only - user *creation* stays exclusively Jetstream's registration flow, this controller only manages role assignment on existing users)
+- [ ] `Users/Index.vue`, `Show.vue` (role assignment); `Roles/Index.vue`, `Create.vue`, `Edit.vue` (name only), `Permissions.vue` (dedicated page, permission checkboxes); `Permissions/Index.vue`, `Create.vue`, `Edit.vue`
+- [ ] `HandleInertiaRequests` shares the current user's permission list globally (`auth.permissions`), so Vue pages can conditionally render actions the user isn't allowed to take, backed by a small `can(permission)` helper - a UI convenience only, the server-side `Gate::before` check is what's actually authoritative
+- [ ] Pest feature tests: full CRUD on roles and permissions, role assignment/removal on a user, permission assignment/removal on a role, the `Gate::before` hook allowing/denying correctly, the registration listener assigning `ADMIN` only to the first user, and specifically the last-admin rejection triggered both ways (removing the role from the last user, and removing the permission from the role that was their only source of it)
+
+## feature/categories
+
+### Routes
+
+| Method | URL | Page rendered | Description | Access |
+|---|---|---|---|---|
+| GET | `/categories` | `Categories/Index` | List | `can:CATEGORY:READ` |
+| GET | `/categories/create` | `Categories/Create` | Creation form | `can:CATEGORY:WRITE` |
+| POST | `/categories` | redirect | Create | `can:CATEGORY:WRITE` |
+| GET | `/categories/{category}/edit` | `Categories/Edit` | Edit form | `can:CATEGORY:WRITE` |
+| PUT | `/categories/{category}` | redirect | Update | `can:CATEGORY:WRITE` |
+| DELETE | `/categories/{category}` | redirect | Delete | `can:CATEGORY:WRITE` |
+
+### Tasks
+
+- [ ] `Category` model, migration - the same migration seeds `CATEGORY:READ`/`CATEGORY:WRITE` permissions and assigns both to `ADMIN`, following the incremental-seeding convention set in `feature/rbac`
+- [ ] Factory
+- [ ] `StoreCategoryRequest`/`UpdateCategoryRequest`
+- [ ] `Actions/Categories/CreateCategory.php`, `UpdateCategory.php`, `DeleteCategory.php` - `DeleteCategory` rejects if the category still has products (once `feature/products` exists)
+- [ ] `CategoryController` (`index`, `create`, `store`, `edit`, `update`, `destroy`), each method thin: validate via the Form Request, delegate to the Action, redirect
+- [ ] Every route protected as listed above
+- [ ] `Categories/Index.vue`, `Create.vue`, `Edit.vue`, built from Jetstream's existing components, write actions hidden via the shared `can()` helper for users without `CATEGORY:WRITE`
+- [ ] Pest feature tests for every route including a permission-denied case, a browser test (Pest v4) covering create → edit → delete through the actual rendered Vue pages
+
+## feature/products
+
+Depends on `feature/categories` existing, since every product references one.
+
+### Routes
+
+| Method | URL | Page rendered | Description | Access |
+|---|---|---|---|---|
+| GET | `/products` | `Products/Index` | List, filterable by category | `can:PRODUCT:READ` |
+| GET | `/products/create` | `Products/Create` | Creation form | `can:PRODUCT:WRITE` |
+| POST | `/products` | redirect | Create | `can:PRODUCT:WRITE` |
+| GET | `/products/{product}/edit` | `Products/Edit` | Edit form | `can:PRODUCT:WRITE` |
+| PUT | `/products/{product}` | redirect | Update | `can:PRODUCT:WRITE` |
+| DELETE | `/products/{product}` | redirect | Delete | `can:PRODUCT:WRITE` |
+
+### Tasks
+
+- [ ] `Product` model, migration - also seeds `PRODUCT:READ`/`PRODUCT:WRITE`, assigned to `ADMIN`
+- [ ] Factory
+- [ ] `StoreProductRequest`/`UpdateProductRequest`
+- [ ] `Actions/Products/CreateProduct.php`, `UpdateProduct.php`, `DeleteProduct.php`
+- [ ] `Actions/Categories/DeleteCategory.php` updated: rejects deletion if the category still has products
+- [ ] `ProductController`, routes protected as listed above
+- [ ] `Products/Index.vue` (with a category filter dropdown), `Create.vue`, `Edit.vue`
+- [ ] Pest feature and browser tests, including the category-deletion rejection case and a permission-denied case
+
+## feature/customers
+
+### Routes
+
+| Method | URL | Page rendered | Description | Access |
+|---|---|---|---|---|
+| GET | `/customers` | `Customers/Index` | List | `can:CUSTOMER:READ` |
+| GET | `/customers/create` | `Customers/Create` | Creation form | `can:CUSTOMER:WRITE` |
+| POST | `/customers` | redirect | Create | `can:CUSTOMER:WRITE` |
+| GET | `/customers/{customer}/edit` | `Customers/Edit` | Edit form | `can:CUSTOMER:WRITE` |
+| PUT | `/customers/{customer}` | redirect | Update | `can:CUSTOMER:WRITE` |
+| DELETE | `/customers/{customer}` | redirect | Delete | `can:CUSTOMER:WRITE` |
+
+### Tasks
+
+- [ ] `Customer` model, migration - also seeds `CUSTOMER:READ`/`CUSTOMER:WRITE`, assigned to `ADMIN`
+- [ ] Factory
+- [ ] `StoreCustomerRequest`/`UpdateCustomerRequest`
+- [ ] `Actions/Customers/CreateCustomer.php`, `UpdateCustomer.php`, `DeleteCustomer.php`
+- [ ] `CustomerController`, routes protected as listed above
+- [ ] `Customers/Index.vue`, `Create.vue`, `Edit.vue`
+- [ ] Pest feature and browser tests, including a permission-denied case
+
+## feature/orders
+
+### Routes
+
+| Method | URL | Page rendered | Description | Access |
+|---|---|---|---|---|
+| GET | `/orders` | `Orders/Index` | List | `can:ORDER:READ` |
+| GET | `/orders/create` | `Orders/Create` | Creation form (product + customer selects) | `can:ORDER:WRITE` |
+| POST | `/orders` | redirect | Create (computes `total`) | `can:ORDER:WRITE` |
+
+### Tasks
+
+- [ ] `Order` model, migration - also seeds `ORDER:READ`/`ORDER:WRITE`, assigned to `ADMIN`
+- [ ] Factory
+- [ ] `StoreOrderRequest`
+- [ ] `Actions/Orders/PlaceOrder.php`: computes `total = quantity * product.unit_price`, persists the order
+- [ ] `OrderController`, routes protected as listed above
+- [ ] `Orders/Index.vue` (displaying customer and product names, not just ids, via Eloquent eager loading - `Order::with(['customer', 'product'])`), `Create.vue`
+- [ ] Pest feature and browser tests, including a full flow: create a category → a product → a customer → an order, verified through the rendered pages, plus a permission-denied case
+
+## Order of work
+
+1. `feature/core-architecture` → Pull Request to `develop`
+2. `feature/jetstream-auth` (depends on `core-architecture`) → Pull Request to `develop`
+3. `feature/rbac` (depends on `jetstream-auth`) → Pull Request to `develop`
+4. `feature/categories` (depends on `rbac`) → Pull Request to `develop`
+5. `feature/products` (depends on `categories`) → Pull Request to `develop`
+6. `feature/customers` (depends on `rbac`) → Pull Request to `develop`
+7. `feature/orders` (depends on `products`, `customers`) → Pull Request to `develop`
+8. `develop` → `master`
+
+## Code conventions
+
+- **Action classes, not a contract/implementation service layer**: business logic lives in single-purpose, invokable `Actions/` classes (`CreateProduct`, `DeleteCategory`, `AssignRoleToUser`, ...), not behind an interface with a separate implementation - this is a deliberate departure from the service-interface pattern used elsewhere; Laravel's own ecosystem (including its official starter kits) favors thin controllers plus Actions over a Java-style service layer, and introducing one here would fight the framework's own idiom rather than use it
+- Controllers only validate (via a Form Request), call exactly one Action, and redirect or render - no business logic in a controller method
+- Every write route is protected with `->middleware('can:RESOURCE:ACTION')`; no controller method re-implements a permission check that route middleware should already have handled
+- Assignments always flow in one direction, never the other - see [Assignment direction](#assignment-direction-permissions-onto-roles-roles-onto-users). A `PermissionController` never gains a "roles" relationship-management endpoint, and a `RoleController` never gains a "users" one.
+- Every RBAC mutation (role/permission CRUD, any assignment or removal) calls `AuditLogger` - this is not optional per-action, it's a property of `Actions/Rbac/` as a whole
+- Every new Vue page reuses Jetstream's existing components (`Components/`) and layout (`Layouts/AppLayout.vue`) - no new design system is introduced
+- Routes are referenced from Vue via Laravel Wayfinder's generated helpers, never a hand-typed URL string
+- Every Eloquent relationship that will be displayed together is eager-loaded explicitly (`with(...)`) - no N+1 query left to Eloquent's lazy loading in a list page
+- Server-side permission checks (route middleware, `Gate::before`) are always authoritative; any client-side `can()` check in Vue is a UI convenience only, never the actual security boundary
+- Each feature branch seeds only the permissions its own resource needs, from its own migration - no branch pre-declares permissions for a resource that doesn't exist yet
+
+## Concepts covered
+
+- Inertia.js as a glue layer between Laravel controllers and Vue pages, without a JSON API
+- Laravel Jetstream: registration, email verification, login, password reset, two-factor authentication, session-based auth, built-in rate limiting
+- Separating authentication (Jetstream) from authorization (a custom role/permission layer), and the single point where they connect
+- Resource/action permissions checked through Laravel's own `Gate::before`, without a dedicated third-party package
+- Directional relationship management (permissions onto roles, roles onto users) as a deliberate, consistently-applied convention
+- Bootstrapping the first administrative user without a circular permission dependency, and preventing a subsequent self-lockout
+- Audit logging as a first-class concern for every sensitive mutation
+- Incremental permission seeding, one resource at a time, from the migration that introduces it
+- Reusing a starter kit's own design system instead of introducing a new one
+- The Action pattern for organizing business logic outside of controllers
+- Laravel Form Requests for validation, and Inertia's automatic error-sharing on failed validation
+- Eloquent relationships and eager loading to avoid N+1 queries in list pages
+- Laravel Wayfinder for typed route references from the frontend
+- Testing an Inertia/Vue application with Pest, including real browser-driven tests of rendered pages and permission-denied cases
+- Containerization (Docker, docker-compose)
+- Continuous integration (GitHub Actions)
+
+## How to follow this tutorial
+
+1. Clone the repository and check out `develop`
+2. Follow the branches in order: `feature/core-architecture` → `feature/jetstream-auth` → `feature/rbac` → `feature/categories` → `feature/products` → `feature/customers` → `feature/orders`
+3. Run `docker-compose up`, `php artisan migrate --seed`, `npm run dev`
+4. Register the first account through Jetstream's own UI (automatically granted `ADMIN`), then navigate to `/users` to promote a second account, or to `/roles`, `/categories`, `/products`, `/customers`, `/orders` directly
