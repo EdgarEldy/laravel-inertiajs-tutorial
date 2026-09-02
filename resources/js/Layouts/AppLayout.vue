@@ -1,8 +1,8 @@
 <script setup>
 import { ref } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { currentLocale, loadLanguageAsync } from 'laravel-vue-i18n';
-import { update as updateLocale } from '@/actions/App/Http/Controllers/LocaleController';
+import { currentLocale } from 'laravel-vue-i18n';
+import { locales, switchLocale } from '@/lib/useLocaleSwitcher';
 import ApplicationMark from '@/Components/ApplicationMark.vue';
 import Banner from '@/Components/Banner.vue';
 import Dropdown from '@/Components/Dropdown.vue';
@@ -15,26 +15,6 @@ defineProps({
 });
 
 const showingNavigationDropdown = ref(false);
-
-const locales = [
-    { code: 'en', label: 'EN' },
-    { code: 'fr', label: 'FR' },
-];
-
-const switchLocale = async (locale) => {
-    // loadLanguageAsync swaps the active translations for the current page
-    // immediately, client-side - the router.post() call only persists the
-    // choice in session so the *next* full page load (a fresh visit, or
-    // this same page reloaded) renders in that language from the start.
-    // Without the loadLanguageAsync call, clicking the switcher would post
-    // successfully but leave every already-rendered $t() call showing the
-    // old language until a manual refresh.
-    await loadLanguageAsync(locale);
-
-    router.post(updateLocale().url, { locale }, {
-        preserveScroll: true,
-    });
-};
 
 const switchToTeam = (team) => {
     router.put(route('current-team.update'), {
