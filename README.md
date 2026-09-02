@@ -282,13 +282,13 @@ This project is bilingual, English and French, throughout - not an afterthought 
 
 ### Tasks
 
-- [ ] Install Jetstream with the Inertia stack and Vue: `php artisan jetstream:install inertia`
-- [ ] `npm install && npm run build`, run the generated migrations (`users`, Jetstream's supporting tables)
-- [ ] Teams feature left **disabled** (`Jetstream::useTeams()` not called)
-- [ ] Two-factor authentication enabled in Jetstream's feature flags (`Features::twoFactorAuthentication()`)
-- [ ] Mail driver set to `smtp` against a local **MailHog** instance (`docker-compose.yml` service, SMTP on `1025`, web UI on `8025`) for local development - verification/reset emails are genuinely sent and inspectable in MailHog's inbox, without requiring a real mail provider
-- [ ] Verify Jetstream's own pages work end to end before building anything new on top: register → verify email → login → enable 2FA → update profile
-- [ ] Pest feature tests (Jetstream ships with its own, but confirm they run) covering registration, login, and email verification
+- [x] Install Jetstream with the Inertia stack and Vue: `php artisan jetstream:install inertia`
+- [x] `npm install && npm run build`, run the generated migrations (`users`, Jetstream's supporting tables)
+- [x] Teams feature left **disabled** (`Jetstream::useTeams()` not called)
+- [x] Two-factor authentication enabled in Jetstream's feature flags (`Features::twoFactorAuthentication()`)
+- [x] Mail driver set to `smtp` against a local **MailHog** instance (`docker-compose.yml` service, SMTP on `1025`, web UI on `8025`) for local development - verification/reset emails are genuinely sent and inspectable in MailHog's inbox, without requiring a real mail provider
+- [x] Verify Jetstream's own pages work end to end before building anything new on top: register → verify email → login → enable 2FA → update profile
+- [x] Pest feature tests (Jetstream ships with its own, but confirm they run) covering registration, login, and email verification
 - [ ] `laravel-vue-i18n` installed and wired into `vite.config.js`; a language switcher added to `AppLayout.vue` posting to `POST /locale`; every Jetstream page (Login, Register, Profile, 2FA, ...) translated into `lang/en/`/`lang/fr/` - see [Internationalization](#internationalization)
 
 ## feature/rbac
