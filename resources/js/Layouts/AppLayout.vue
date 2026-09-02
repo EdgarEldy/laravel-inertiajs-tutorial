@@ -8,6 +8,7 @@ import DropdownLink from '@/Components/DropdownLink.vue';
 import LanguageSwitcher from '@/Components/LanguageSwitcher.vue';
 import NavLink from '@/Components/NavLink.vue';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
+import { can } from '@/lib/can';
 
 defineProps({
     title: String,
@@ -51,6 +52,18 @@ const logout = () => {
                             <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
                                 <NavLink :href="route('dashboard')" :active="route().current('dashboard')">
                                     {{ $t('Dashboard') }}
+                                </NavLink>
+
+                                <NavLink v-if="can('USER:READ')" :href="route('users.index')" :active="route().current('users.*')">
+                                    Users
+                                </NavLink>
+
+                                <NavLink v-if="can('ROLE:READ')" :href="route('roles.index')" :active="route().current('roles.*')">
+                                    Roles
+                                </NavLink>
+
+                                <NavLink v-if="can('PERMISSION:READ')" :href="route('permissions.index')" :active="route().current('permissions.*')">
+                                    Permissions
                                 </NavLink>
                             </div>
                         </div>
@@ -196,6 +209,18 @@ const logout = () => {
                     <div class="pt-2 pb-3 space-y-1">
                         <ResponsiveNavLink :href="route('dashboard')" :active="route().current('dashboard')">
                             {{ $t('Dashboard') }}
+                        </ResponsiveNavLink>
+
+                        <ResponsiveNavLink v-if="can('USER:READ')" :href="route('users.index')" :active="route().current('users.*')">
+                            Users
+                        </ResponsiveNavLink>
+
+                        <ResponsiveNavLink v-if="can('ROLE:READ')" :href="route('roles.index')" :active="route().current('roles.*')">
+                            Roles
+                        </ResponsiveNavLink>
+
+                        <ResponsiveNavLink v-if="can('PERMISSION:READ')" :href="route('permissions.index')" :active="route().current('permissions.*')">
+                            Permissions
                         </ResponsiveNavLink>
                     </div>
 
