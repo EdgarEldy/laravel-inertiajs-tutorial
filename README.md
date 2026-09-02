@@ -98,7 +98,7 @@ Every resource with a Create/Edit flow (`Roles`, `Permissions`, `Categories`, `P
 | Database | MySQL 8.0 (via Docker Compose) |
 | ORM | Eloquent |
 | Migrations | Laravel migrations, each feature's own permissions seeded alongside its own tables |
-| Business logic organization | Action classes (one class per business operation), keeping controllers thin - see [Code conventions](#code-conventions) |
+| Business logic organization | Service classes (one per resource: `RoleService`, `CategoryService`, ...), concrete classes with no interface, keeping controllers thin - see [Code conventions](#code-conventions) |
 | Validation | Laravel Form Requests |
 | Code style | Laravel Pint |
 | Tests | Pest v4 (feature tests via Laravel's testing helpers and Inertia's assertion macros, plus Pest's browser testing plugin for true end-to-end Vue page tests) |
@@ -151,16 +151,6 @@ customers (id, first_name, last_name, telephone, email, address)
 ```
 laravel-inertia-vue-tutorial/
 ├── app/
-│   ├── Actions/
-│   │   ├── Rbac/
-│   │   │   ├── CreateRole.php, UpdateRole.php, DeleteRole.php
-│   │   │   ├── CreatePermission.php, UpdatePermission.php, DeletePermission.php
-│   │   │   ├── AssignPermissionToRole.php, RemovePermissionFromRole.php
-│   │   │   └── AssignRoleToUser.php, RemoveRoleFromUser.php
-│   │   ├── Categories/ (CreateCategory.php, UpdateCategory.php, DeleteCategory.php)
-│   │   ├── Products/ (CreateProduct.php, UpdateProduct.php, DeleteProduct.php)
-│   │   ├── Customers/ (CreateCustomer.php, UpdateCustomer.php, DeleteCustomer.php)
-│   │   └── Orders/ (PlaceOrder.php)
 │   ├── Http/
 │   │   ├── Controllers/
 │   │   │   ├── RoleController.php, PermissionController.php, UserController.php
@@ -175,6 +165,10 @@ laravel-inertia-vue-tutorial/
 │   │   │   ├── StoreProductRequest.php, UpdateProductRequest.php
 │   │   │   ├── StoreCustomerRequest.php, UpdateCustomerRequest.php
 │   │   │   └── StoreOrderRequest.php
+│   │   ├── Resources/                          (JsonResource - shapes a model/collection into the array handed to Inertia::render as a prop; still a plain array on the wire, not a new object layer)
+│   │   │   ├── RoleResource.php, PermissionResource.php, UserResource.php
+│   │   │   ├── CategoryResource.php, ProductResource.php
+│   │   │   ├── CustomerResource.php, OrderResource.php
 │   │   └── Middleware/
 │   │       └── HandleInertiaRequests.php      (Jetstream-generated; also shares the current user's permissions globally)
 │   ├── Listeners/
@@ -184,7 +178,12 @@ laravel-inertia-vue-tutorial/
 │   │   ├── Category.php, Product.php, Customer.php, Order.php
 │   │   └── User.php                              (Jetstream's default model, extended with roles()/hasPermission())
 │   ├── Services/
-│   │   └── AuditLogger.php                       (single log(action, entityType, entityId, details) method)
+│   │   ├── RoleService.php, PermissionService.php, UserService.php   (RBAC: CRUD + assignment, see feature/rbac)
+│   │   ├── CategoryService.php, ProductService.php
+│   │   ├── CustomerService.php, OrderService.php
+│   │   ├── AuditLogger.php                       (single log(action, entityType, entityId, details) method)
+│   │   └── Concerns/
+│   │       └── LogsAuditEvents.php               (trait: shared logCreated/logUpdated/logDeleted/logAssigned/logRemoved helpers over AuditLogger, used by RoleService/PermissionService/UserService)
 │   └── Providers/
 │       └── AuthServiceProvider.php               (registers the Gate::before permission hook)
 ├── database/
@@ -294,11 +293,12 @@ Full CRUD for roles and permissions, plus user-role management. No page ever man
 - [ ] `AuthServiceProvider`: `Gate::before` closure implementing the `RESOURCE:ACTION` permission check described [above](#how-permissions-are-checked)
 - [ ] `AssignDefaultRoleOnRegistration` listener, registered against Jetstream's `Registered` event: assigns `ADMIN` to the first user ever created, `USER` to everyone after
 - [ ] `RbacPermissionSeeder`: seeds only this branch's own permissions (`ROLE:READ`, `ROLE:WRITE`, `PERMISSION:READ`, `PERMISSION:WRITE`, `USER:READ`, `USER:WRITE`), assigned to a seeded `ADMIN` role - later branches seed their own resource's permissions from their own migrations rather than all being declared here up front
-- [ ] `AuditLogger` service, with a single `log(string $action, string $entityType, int $entityId, array $details = [])` method, called from every Action in `Actions/Rbac/`
-- [ ] `Actions/Rbac/CreateRole.php`, `UpdateRole.php`, `DeleteRole.php` - `DeleteRole` rejects if any user is still assigned this role (must be unassigned first)
-- [ ] `Actions/Rbac/CreatePermission.php`, `UpdatePermission.php`, `DeletePermission.php` - `DeletePermission` rejects if any role still has this permission assigned
-- [ ] `Actions/Rbac/AssignPermissionToRole.php`, `RemovePermissionFromRole.php` - `RemovePermissionFromRole` rejects removing `ROLE:WRITE` from a role if doing so would leave **zero** users anywhere holding a role that grants `ROLE:WRITE` (the role being edited is only one of possibly several sources)
-- [ ] `Actions/Rbac/AssignRoleToUser.php`, `RemoveRoleFromUser.php` - `RemoveRoleFromUser` applies the same last-admin check as above at the point of removal from a specific user, so a self-lockout is caught however it's attempted (removing the permission from the role, or removing the role from the last user who has it)
+- [ ] `AuditLogger` service, with a single `log(string $action, string $entityType, int $entityId, array $details = [])` method
+- [ ] `Services/Concerns/LogsAuditEvents.php` trait: `logCreated`/`logUpdated`/`logDeleted`/`logAssigned`/`logRemoved` helpers wrapping `AuditLogger::log()`, mixed into `RoleService`, `PermissionService`, `UserService`
+- [ ] `RoleService::createRole()`, `updateRole()`, `deleteRole()` - `deleteRole` rejects if any user is still assigned this role (must be unassigned first)
+- [ ] `PermissionService::createPermission()`, `updatePermission()`, `deletePermission()` - `deletePermission` rejects if any role still has this permission assigned
+- [ ] `RoleService::assignPermissionToRole()`, `removePermissionFromRole()` - `removePermissionFromRole` rejects removing `ROLE:WRITE` from a role if doing so would leave **zero** users anywhere holding a role that grants `ROLE:WRITE` (the role being edited is only one of possibly several sources)
+- [ ] `UserService::assignRoleToUser()`, `removeRoleFromUser()` - `removeRoleFromUser` applies the same last-admin check as above at the point of removal from a specific user, so a self-lockout is caught however it's attempted (removing the permission from the role, or removing the role from the last user who has it)
 - [ ] `RoleController`, `PermissionController`, `UserController` (`index`, `show` only - user *creation* stays exclusively Jetstream's registration flow, this controller only manages role assignment on existing users)
 - [ ] `Users/Index.vue`, `Show.vue` (role assignment); `Roles/Index.vue` + `Partials/Data.vue` + `Partials/Form.vue` (create/edit modal, name only), `Permissions.vue` (dedicated page, permission checkboxes); `Permissions/Index.vue` + `Partials/Data.vue` + `Partials/Form.vue`
 - [ ] `HandleInertiaRequests` shares the current user's permission list globally (`auth.permissions`), so Vue pages can conditionally render actions the user isn't allowed to take, backed by a small `can(permission)` helper - a UI convenience only, the server-side `Gate::before` check is what's actually authoritative
@@ -320,8 +320,8 @@ Full CRUD for roles and permissions, plus user-role management. No page ever man
 - [ ] `Category` model, migration - the same migration seeds `CATEGORY:READ`/`CATEGORY:WRITE` permissions and assigns both to `ADMIN`, following the incremental-seeding convention set in `feature/rbac`
 - [ ] Factory
 - [ ] `StoreCategoryRequest`/`UpdateCategoryRequest`
-- [ ] `Actions/Categories/CreateCategory.php`, `UpdateCategory.php`, `DeleteCategory.php` - `DeleteCategory` rejects if the category still has products (once `feature/products` exists)
-- [ ] `CategoryController` (`index`, `store`, `update`, `destroy`), each method thin: validate via the Form Request, delegate to the Action, redirect
+- [ ] `CategoryService::createCategory()`, `updateCategory()`, `deleteCategory()` - `deleteCategory` rejects if the category still has products (once `feature/products` exists)
+- [ ] `CategoryController` (`index`, `store`, `update`, `destroy`), each method thin: validate via the Form Request, delegate to `CategoryService`, redirect
 - [ ] Every route protected as listed above
 - [ ] `Categories/Index.vue` + `Partials/Data.vue` + `Partials/Form.vue` (create/edit modal - see [Create/Edit as modals, not pages](#createedit-as-modals-not-pages)), built from Jetstream's existing components, write actions hidden via the shared `can()` helper for users without `CATEGORY:WRITE`
 - [ ] Pest feature tests for every route including a permission-denied case, a browser test (Pest v4) covering create → edit → delete through the actual rendered Vue pages
@@ -344,8 +344,8 @@ Depends on `feature/categories` existing, since every product references one.
 - [ ] `Product` model, migration - also seeds `PRODUCT:READ`/`PRODUCT:WRITE`, assigned to `ADMIN`
 - [ ] Factory
 - [ ] `StoreProductRequest`/`UpdateProductRequest`
-- [ ] `Actions/Products/CreateProduct.php`, `UpdateProduct.php`, `DeleteProduct.php`
-- [ ] `Actions/Categories/DeleteCategory.php` updated: rejects deletion if the category still has products
+- [ ] `ProductService::createProduct()`, `updateProduct()`, `deleteProduct()`
+- [ ] `CategoryService::deleteCategory()` updated: rejects deletion if the category still has products
 - [ ] `ProductController`, routes protected as listed above
 - [ ] `Products/Index.vue` (with a category filter dropdown) + `Partials/Data.vue` + `Partials/Form.vue` (create/edit modal)
 - [ ] Pest feature and browser tests, including the category-deletion rejection case and a permission-denied case
@@ -366,7 +366,7 @@ Depends on `feature/categories` existing, since every product references one.
 - [ ] `Customer` model, migration - also seeds `CUSTOMER:READ`/`CUSTOMER:WRITE`, assigned to `ADMIN`
 - [ ] Factory
 - [ ] `StoreCustomerRequest`/`UpdateCustomerRequest`
-- [ ] `Actions/Customers/CreateCustomer.php`, `UpdateCustomer.php`, `DeleteCustomer.php`
+- [ ] `CustomerService::createCustomer()`, `updateCustomer()`, `deleteCustomer()`
 - [ ] `CustomerController`, routes protected as listed above
 - [ ] `Customers/Index.vue` + `Partials/Data.vue` + `Partials/Form.vue` (create/edit modal)
 - [ ] Pest feature and browser tests, including a permission-denied case
@@ -385,7 +385,7 @@ Depends on `feature/categories` existing, since every product references one.
 - [ ] `Order` model, migration - also seeds `ORDER:READ`/`ORDER:WRITE`, assigned to `ADMIN`
 - [ ] Factory
 - [ ] `StoreOrderRequest`
-- [ ] `Actions/Orders/PlaceOrder.php`: computes `total = quantity * product.unit_price`, persists the order
+- [ ] `OrderService::placeOrder()`: computes `total = quantity * product.unit_price`, persists the order
 - [ ] `OrderController`, routes protected as listed above
 - [ ] `Orders/Index.vue` (displaying customer and product names, not just ids, via Eloquent eager loading - `Order::with(['customer', 'product'])`) + `Partials/Data.vue` + `Partials/Form.vue` (create-only modal, no edit - orders have no update/delete route)
 - [ ] Pest feature and browser tests, including a full flow: create a category → a product → a customer → an order, verified through the rendered pages, plus a permission-denied case
@@ -403,16 +403,17 @@ Depends on `feature/categories` existing, since every product references one.
 
 ## Code conventions
 
-- **Action classes, not a contract/implementation service layer**: business logic lives in single-purpose, invokable `Actions/` classes (`CreateProduct`, `DeleteCategory`, `AssignRoleToUser`, ...), not behind an interface with a separate implementation - this is a deliberate departure from the service-interface pattern used elsewhere; Laravel's own ecosystem (including its official starter kits) favors thin controllers plus Actions over a Java-style service layer, and introducing one here would fight the framework's own idiom rather than use it
-- Controllers only validate (via a Form Request), call exactly one Action, and redirect or render - no business logic in a controller method
-- Every write route is protected with `->middleware('can:RESOURCE:ACTION')`; no controller method re-implements a permission check that route middleware should already have handled
-- Assignments always flow in one direction, never the other - see [Assignment direction](#assignment-direction-permissions-onto-roles-roles-onto-users). A `PermissionController` never gains a "roles" relationship-management endpoint, and a `RoleController` never gains a "users" one.
-- Every RBAC mutation (role/permission CRUD, any assignment or removal) calls `AuditLogger` - this is not optional per-action, it's a property of `Actions/Rbac/` as a whole
-- Every new Vue page reuses Jetstream's existing components (`Components/`) and layout (`Layouts/AppLayout.vue`) - no new design system is introduced
-- Routes are referenced from Vue via Laravel Wayfinder's generated helpers, never a hand-typed URL string
-- Every Eloquent relationship that will be displayed together is eager-loaded explicitly (`with(...)`) - no N+1 query left to Eloquent's lazy loading in a list page
-- Server-side permission checks (route middleware, `Gate::before`) are always authoritative; any client-side `can()` check in Vue is a UI convenience only, never the actual security boundary
-- Each feature branch seeds only the permissions its own resource needs, from its own migration - no branch pre-declares permissions for a resource that doesn't exist yet
+- **Service classes, concrete, no interface**: business logic lives in one `Service` class per resource (`RoleService`, `PermissionService`, `UserService`, `CategoryService`, `ProductService`, `CustomerService`, `OrderService`), each with one public method per business operation (`createRole`, `deleteRole`, `assignPermissionToRole`, ...). No `Interfaces`/`Implementations` split, no contract - the class is bound to the container as itself and injected directly into the controller that needs it. This is a deliberate choice to stay inside Laravel's own idiom (concrete class, constructor injection resolved automatically by the container) rather than importing a Java-style contract/implementation pattern this project has no actual need for (there is only ever one implementation of `RoleService`).
+- Controllers only validate (via a Form Request), call exactly one method on the relevant Service, and redirect or render - no business logic in a controller method.
+- Every write route is protected with `->middleware('can:RESOURCE:ACTION')`; no controller method re-implements a permission check that route middleware should already have handled.
+- Assignments always flow in one direction, never the other - see [Assignment direction](#assignment-direction-permissions-onto-roles-roles-onto-users). `PermissionController`/`PermissionService` never gain a "roles" relationship-management endpoint/method, and `RoleController`/`RoleService` never gain a "users" one.
+- Every RBAC mutation (role/permission CRUD, any assignment or removal) calls `AuditLogger` - this is not optional per-method, it's a property of `RoleService`/`PermissionService`/`UserService` as a whole. `LogsAuditEvents` (a trait, `app/Services/Concerns/`) is shared by all three so the same `log*` helper signatures are used consistently rather than each service hand-rolling its own `AuditLogger::log(...)` calls.
+- Every payload handed to `Inertia::render()` as a prop that comes from an Eloquent model or collection goes through a `JsonResource` (`app/Http/Resources/`) rather than being passed raw - keeps the exact shape reaching the Vue page explicit and stable (which relations, which fields) instead of whatever `toArray()` happens to produce today. This is still a plain array on the wire, not a new object/DTO layer between the database and the frontend - a `Resource` is a formatting function, nothing more.
+- Every new Vue page reuses Jetstream's existing components (`Components/`) and layout (`Layouts/AppLayout.vue`) - no new design system is introduced.
+- Routes are referenced from Vue via Laravel Wayfinder's generated helpers, never a hand-typed URL string.
+- Every Eloquent relationship that will be displayed together is eager-loaded explicitly (`with(...)`) - no N+1 query left to Eloquent's lazy loading in a list page.
+- Server-side permission checks (route middleware, `Gate::before`) are always authoritative; any client-side `can()` check in Vue is a UI convenience only, never the actual security boundary.
+- Each feature branch seeds only the permissions its own resource needs, from its own migration - no branch pre-declares permissions for a resource that doesn't exist yet.
 
 ## Concepts covered
 
@@ -425,7 +426,9 @@ Depends on `feature/categories` existing, since every product references one.
 - Audit logging as a first-class concern for every sensitive mutation
 - Incremental permission seeding, one resource at a time, from the migration that introduces it
 - Reusing a starter kit's own design system instead of introducing a new one
-- The Action pattern for organizing business logic outside of controllers
+- Service classes for organizing business logic outside of controllers, without an interface the project has no real use for
+- Traits for sharing behavior across classes that don't share a base class (`LogsAuditEvents` across the three RBAC services)
+- `JsonResource` for shaping what an Eloquent model/collection actually sends to the frontend as an Inertia prop
 - Laravel Form Requests for validation, and Inertia's automatic error-sharing on failed validation
 - Eloquent relationships and eager loading to avoid N+1 queries in list pages
 - Laravel Wayfinder for typed route references from the frontend
