@@ -49,12 +49,12 @@ const close = () => {
 <template>
     <DialogModal :show="show" @close="close">
         <template #title>
-            {{ permission ? 'Edit Permission' : 'Create Permission' }}
+            {{ permission ? $t('Edit Permission') : $t('Create Permission') }}
         </template>
 
         <template #content>
             <div>
-                <InputLabel for="resource" value="Resource" />
+                <InputLabel for="resource" :value="$t('Resource')" />
                 <TextInput
                     id="resource"
                     v-model="form.resource"
@@ -68,7 +68,7 @@ const close = () => {
             </div>
 
             <div class="mt-4">
-                <InputLabel for="action" value="Action" />
+                <InputLabel for="action" :value="$t('Action')" />
                 <TextInput
                     id="action"
                     v-model="form.action"
@@ -83,7 +83,7 @@ const close = () => {
 
         <template #footer>
             <SecondaryButton @click="close">
-                Cancel
+                {{ $t('Cancel') }}
             </SecondaryButton>
 
             <PrimaryButton
@@ -92,7 +92,7 @@ const close = () => {
                 :disabled="form.processing"
                 @click="submit"
             >
-                {{ permission ? 'Save' : 'Create' }}
+                {{ permission ? $t('Save') : $t('Create') }}
             </PrimaryButton>
         </template>
     </DialogModal>
