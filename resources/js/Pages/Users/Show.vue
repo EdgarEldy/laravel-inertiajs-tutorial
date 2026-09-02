@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
+import { trans } from 'laravel-vue-i18n';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import DangerButton from '@/Components/DangerButton.vue';
 import InputError from '@/Components/InputError.vue';
@@ -34,7 +35,7 @@ const assignRole = () => {
 };
 
 const removeRole = (role: Role) => {
-    if (confirm(`Remove the "${role.role_name}" role from ${props.user.name}?`)) {
+    if (confirm(trans('Remove the ":role" role from :user?', { role: role.role_name, user: props.user.name }))) {
         router.delete(UserController.removeRole.url([props.user.id, role.id]), { preserveScroll: true });
     }
 };
@@ -53,24 +54,24 @@ const removeRole = (role: Role) => {
         <div class="py-12">
             <div class="max-w-3xl mx-auto sm:px-6 lg:px-8 space-y-6">
                 <Link :href="usersIndex.url()" class="text-sm text-indigo-600 hover:text-indigo-900">
-                    &larr; Back to users
+                    &larr; {{ $t('Back to users') }}
                 </Link>
 
                 <div class="bg-white shadow-sm sm:rounded-lg p-6">
                     <dl class="grid grid-cols-1 gap-2 sm:grid-cols-2">
                         <div>
-                            <dt class="text-xs font-medium text-gray-500 uppercase">Name</dt>
+                            <dt class="text-xs font-medium text-gray-500 uppercase">{{ $t('Name') }}</dt>
                             <dd class="text-sm text-gray-900">{{ user.name }}</dd>
                         </div>
                         <div>
-                            <dt class="text-xs font-medium text-gray-500 uppercase">Email</dt>
+                            <dt class="text-xs font-medium text-gray-500 uppercase">{{ $t('Email') }}</dt>
                             <dd class="text-sm text-gray-900">{{ user.email }}</dd>
                         </div>
                     </dl>
                 </div>
 
                 <div class="bg-white shadow-sm sm:rounded-lg p-6">
-                    <h3 class="text-sm font-semibold text-gray-700 uppercase mb-4">Assigned roles</h3>
+                    <h3 class="text-sm font-semibold text-gray-700 uppercase mb-4">{{ $t('Assigned roles') }}</h3>
 
                     <InputError :message="errors.role" class="mb-4" />
 
@@ -78,23 +79,23 @@ const removeRole = (role: Role) => {
                         <li v-for="role in user.roles ?? []" :key="role.id" class="flex items-center justify-between py-2">
                             <span class="text-sm text-gray-900">{{ role.role_name }}</span>
                             <DangerButton v-if="can('USER:WRITE')" @click="removeRole(role)">
-                                Remove
+                                {{ $t('Remove') }}
                             </DangerButton>
                         </li>
                         <li v-if="(user.roles ?? []).length === 0" class="py-2 text-sm text-gray-500">
-                            No roles assigned.
+                            {{ $t('No roles assigned.') }}
                         </li>
                     </ul>
 
                     <form v-if="can('USER:WRITE')" class="flex items-end gap-3" @submit.prevent="assignRole">
                         <div class="flex-1">
-                            <InputLabel for="role_id" value="Assign a role" />
+                            <InputLabel for="role_id" :value="$t('Assign a role')" />
                             <select
                                 id="role_id"
                                 v-model="selectedRoleId"
                                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                             >
-                                <option value="" disabled>Select a role</option>
+                                <option value="" disabled>{{ $t('Select a role') }}</option>
                                 <option v-for="role in unassignedRoles" :key="role.id" :value="role.id">
                                     {{ role.role_name }}
                                 </option>
@@ -102,7 +103,7 @@ const removeRole = (role: Role) => {
                         </div>
 
                         <PrimaryButton :disabled="selectedRoleId === ''" type="submit">
-                            Assign
+                            {{ $t('Assign') }}
                         </PrimaryButton>
                     </form>
                 </div>
