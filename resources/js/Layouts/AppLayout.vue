@@ -55,15 +55,15 @@ const logout = () => {
                                 </NavLink>
 
                                 <NavLink v-if="can('USER:READ')" :href="route('users.index')" :active="route().current('users.*')">
-                                    Users
+                                    {{ $t('Users') }}
                                 </NavLink>
 
                                 <NavLink v-if="can('ROLE:READ')" :href="route('roles.index')" :active="route().current('roles.*')">
-                                    Roles
+                                    {{ $t('Roles') }}
                                 </NavLink>
 
                                 <NavLink v-if="can('PERMISSION:READ')" :href="route('permissions.index')" :active="route().current('permissions.*')">
-                                    Permissions
+                                    {{ $t('Permissions') }}
                                 </NavLink>
                             </div>
                         </div>
@@ -212,15 +212,15 @@ const logout = () => {
                         </ResponsiveNavLink>
 
                         <ResponsiveNavLink v-if="can('USER:READ')" :href="route('users.index')" :active="route().current('users.*')">
-                            Users
+                            {{ $t('Users') }}
                         </ResponsiveNavLink>
 
                         <ResponsiveNavLink v-if="can('ROLE:READ')" :href="route('roles.index')" :active="route().current('roles.*')">
-                            Roles
+                            {{ $t('Roles') }}
                         </ResponsiveNavLink>
 
                         <ResponsiveNavLink v-if="can('PERMISSION:READ')" :href="route('permissions.index')" :active="route().current('permissions.*')">
-                            Permissions
+                            {{ $t('Permissions') }}
                         </ResponsiveNavLink>
                     </div>
 
