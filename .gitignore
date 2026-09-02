@@ -19,6 +19,9 @@
 /test-results
 /playwright-report
 /blob-report
+/resources/js/actions
+/resources/js/routes
+/resources/js/wayfinder
 /storage/*.key
 /storage/pail
 /vendor
