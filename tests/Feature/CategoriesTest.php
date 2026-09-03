@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Category;
+use App\Models\Product;
 use Inertia\Testing\AssertableInertia as Assert;
 
 test('a user with CATEGORY:READ can view the categories index', function () {
@@ -130,6 +131,17 @@ test('a user without CATEGORY:WRITE cannot delete a category', function () {
     $response = $this->actingAs($user)->delete("/categories/{$category->id}");
 
     $response->assertForbidden();
+    $this->assertDatabaseHas('categories', ['id' => $category->id]);
+});
+
+test('a user with CATEGORY:WRITE cannot delete a category that still has products', function () {
+    $user = $this->userWithPermissions([['CATEGORY', 'WRITE']]);
+    $category = Category::factory()->create(['category_name' => 'Electronics']);
+    Product::factory()->create(['category_id' => $category->id]);
+
+    $response = $this->actingAs($user)->delete("/categories/{$category->id}");
+
+    $response->assertSessionHasErrors('category');
     $this->assertDatabaseHas('categories', ['id' => $category->id]);
 });
 
