@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Product;
+use Illuminate\Validation\ValidationException;
 
 /**
  * CRUD for products. Like `CategoryService`, this is not one of the RBAC
@@ -31,8 +32,22 @@ class ProductService
         return $product;
     }
 
+    /**
+     * Rejects deletion if the product still has any orders - same
+     * referential-integrity pattern as
+     * `CategoryService::deleteCategory()`: a `ValidationException`
+     * surfaces as a redirect-back field error instead of letting the
+     * database's own `restrictOnDelete()` foreign key raise a raw query
+     * exception up to the user.
+     */
     public function deleteProduct(Product $product): void
     {
+        if ($product->orders()->exists()) {
+            throw ValidationException::withMessages([
+                'product' => 'This product still has orders and cannot be deleted.',
+            ]);
+        }
+
         $product->delete();
     }
 }

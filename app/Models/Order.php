@@ -2,15 +2,14 @@
 
 namespace App\Models;
 
-use Database\Factories\ProductFactory;
+use Database\Factories\OrderFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Product extends Model
+class Order extends Model
 {
-    /** @use HasFactory<ProductFactory> */
+    /** @use HasFactory<OrderFactory> */
     use HasFactory;
 
     /**
@@ -19,9 +18,10 @@ class Product extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'category_id',
-        'product_name',
-        'unit_price',
+        'customer_id',
+        'product_id',
+        'quantity',
+        'total',
     ];
 
     /**
@@ -30,17 +30,18 @@ class Product extends Model
     protected function casts(): array
     {
         return [
-            'unit_price' => 'decimal:2',
+            'quantity' => 'integer',
+            'total' => 'decimal:2',
         ];
     }
 
-    public function category(): BelongsTo
+    public function customer(): BelongsTo
     {
-        return $this->belongsTo(Category::class);
+        return $this->belongsTo(Customer::class);
     }
 
-    public function orders(): HasMany
+    public function product(): BelongsTo
     {
-        return $this->hasMany(Order::class);
+        return $this->belongsTo(Product::class);
     }
 }

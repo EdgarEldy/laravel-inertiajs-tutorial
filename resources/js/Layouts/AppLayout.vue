@@ -77,6 +77,10 @@ const logout = () => {
                                 <NavLink v-if="can('CUSTOMER:READ')" :href="route('customers.index')" :active="route().current('customers.*')">
                                     {{ $t('Customers') }}
                                 </NavLink>
+
+                                <NavLink v-if="can('ORDER:READ')" :href="route('orders.index')" :active="route().current('orders.*')">
+                                    {{ $t('Orders') }}
+                                </NavLink>
                             </div>
                         </div>
 
@@ -245,6 +249,10 @@ const logout = () => {
 
                         <ResponsiveNavLink v-if="can('CUSTOMER:READ')" :href="route('customers.index')" :active="route().current('customers.*')">
                             {{ $t('Customers') }}
+                        </ResponsiveNavLink>
+
+                        <ResponsiveNavLink v-if="can('ORDER:READ')" :href="route('orders.index')" :active="route().current('orders.*')">
+                            {{ $t('Orders') }}
                         </ResponsiveNavLink>
                     </div>
 

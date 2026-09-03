@@ -3,6 +3,7 @@
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\LocaleController;
+use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\RoleController;
@@ -63,6 +64,11 @@ Route::middleware([
     Route::post('/customers', [CustomerController::class, 'store'])->name('customers.store')->middleware('can:CUSTOMER:WRITE');
     Route::put('/customers/{customer}', [CustomerController::class, 'update'])->name('customers.update')->middleware('can:CUSTOMER:WRITE');
     Route::delete('/customers/{customer}', [CustomerController::class, 'destroy'])->name('customers.destroy')->middleware('can:CUSTOMER:WRITE');
+
+    // No PUT/DELETE routes - orders are a create-only resource, per this
+    // project's fixed convention.
+    Route::get('/orders', [OrderController::class, 'index'])->name('orders.index')->middleware('can:ORDER:READ');
+    Route::post('/orders', [OrderController::class, 'store'])->name('orders.store')->middleware('can:ORDER:WRITE');
 });
 
 Route::post('/locale', [LocaleController::class, 'update'])->name('locale.update');
