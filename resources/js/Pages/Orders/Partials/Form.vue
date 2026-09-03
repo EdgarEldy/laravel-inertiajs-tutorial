@@ -26,14 +26,14 @@ const emit = defineEmits<{
 const form = useForm({
     customer_id: '' as number | string,
     product_id: '' as number | string,
-    quantity: 1,
+    quantity: '1' as number | string,
 });
 
 watch(() => props.show, (show) => {
     if (show) {
         form.customer_id = props.customers[0]?.id ?? '';
         form.product_id = props.products[0]?.id ?? '';
-        form.quantity = 1;
+        form.quantity = '1';
         form.clearErrors();
     }
 });
