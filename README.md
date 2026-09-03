@@ -418,14 +418,14 @@ Depends on `feature/categories` existing, since every product references one.
 
 ### Tasks
 
-- [ ] `Order` model, migration - also seeds `ORDER:READ`/`ORDER:WRITE`, assigned to `ADMIN`
-- [ ] Factory
-- [ ] `StoreOrderRequest`
-- [ ] `OrderService::placeOrder()`: computes `total = quantity * product.unit_price`, persists the order
-- [ ] `OrderController`, routes protected as listed above
-- [ ] `Orders/Index.vue` (displaying customer and product names, not just ids, via Eloquent eager loading - `Order::with(['customer', 'product'])`) + `Partials/Data.vue` + `Partials/Form.vue` (create-only modal, no edit - orders have no update/delete route)
-- [ ] Pest feature tests and Playwright tests, including a full flow: create a category → a product → a customer → an order, verified through the rendered pages, plus a permission-denied case
-- [ ] Vitest unit tests for `Orders/Partials/Data.vue` and `Partials/Form.vue` (create-only); a Vitest integration test composing `Index.vue` with both
+- [x] `Order` model, migration - also seeds `ORDER:READ`/`ORDER:WRITE`, assigned to `ADMIN` - `customer_id`/`product_id` both use `restrictOnDelete()`, and `CustomerService::deleteCustomer()`/`ProductService::deleteProduct()` were extended to reject deletion while orders still reference them, matching the exact pattern `CategoryService::deleteCategory()` already established
+- [x] Factory
+- [x] `StoreOrderRequest`
+- [x] `OrderService::placeOrder()`: computes `total = quantity * product.unit_price`, persists the order - `total` is never accepted as client input
+- [x] `OrderController`, routes protected as listed above - `index` sends only the id/name columns customers and products actually need for the create form's selects, not the full resource, since a user only needs `ORDER:READ` to reach this page
+- [x] `Orders/Index.vue` (displaying customer and product names, not just ids, via Eloquent eager loading - `Order::with(['customer', 'product'])`) + `Partials/Data.vue` + `Partials/Form.vue` (create-only modal, no edit - orders have no update/delete route)
+- [x] Pest feature tests and Playwright tests, including a full flow: create a category → a product → a customer → an order, verified through the rendered pages, plus a permission-denied case
+- [x] Vitest unit tests for `Orders/Partials/Data.vue` and `Partials/Form.vue` (create-only); a Vitest integration test composing `Index.vue` with both
 
 ## Order of work
 
