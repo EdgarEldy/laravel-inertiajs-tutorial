@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -20,9 +21,14 @@ class DatabaseSeeder extends Seeder
 
         // User::factory(10)->create();
 
-        User::factory()->create([
-            'name' => 'Test User',
+        $user = User::factory()->create([
+            ...User::splitName('Test User'),
             'email' => 'test@example.com',
         ]);
+
+        // Factory-created users never fire Jetstream's Registered event, so
+        // AssignDefaultRoleOnRegistration never runs for them - without this,
+        // the seeded dev user would have no role and no permissions at all.
+        $user->roles()->attach(Role::where('role_name', 'ADMIN')->first());
     }
 }
