@@ -6,6 +6,7 @@ export default defineConfig({
     test: {
         environment: 'jsdom',
         globals: true,
+        setupFiles: ['./resources/js/test-setup.js'],
         // Vitest's default include glob (**/*.spec.js) also matches
         // Playwright's own spec files under tests/Browser/ - without this
         // exclude, Vitest tries to collect them as its own tests and fails
