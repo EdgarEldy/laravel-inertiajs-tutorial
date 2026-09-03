@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\Customer;
+use App\Models\Order;
+use App\Models\Product;
 use Inertia\Testing\AssertableInertia as Assert;
 
 test('a user with CUSTOMER:READ can view the customers index', function () {
@@ -373,5 +375,17 @@ test('a guest cannot delete a customer', function () {
     $response = $this->delete("/customers/{$customer->id}");
 
     $response->assertRedirect('/login');
+    $this->assertDatabaseHas('customers', ['id' => $customer->id]);
+});
+
+test('a user with CUSTOMER:WRITE cannot delete a customer that still has orders', function () {
+    $user = $this->userWithPermissions([['CUSTOMER', 'WRITE']]);
+    $customer = Customer::factory()->create();
+    $product = Product::factory()->create();
+    Order::factory()->create(['customer_id' => $customer->id, 'product_id' => $product->id]);
+
+    $response = $this->actingAs($user)->delete("/customers/{$customer->id}");
+
+    $response->assertSessionHasErrors('customer');
     $this->assertDatabaseHas('customers', ['id' => $customer->id]);
 });
