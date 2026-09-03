@@ -3,6 +3,7 @@
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\PermissionController;
+use App\Http\Controllers\ProductController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserController;
 use App\Http\Middleware\ShareAuthPermissions;
@@ -51,6 +52,11 @@ Route::middleware([
     Route::post('/categories', [CategoryController::class, 'store'])->name('categories.store')->middleware('can:CATEGORY:WRITE');
     Route::put('/categories/{category}', [CategoryController::class, 'update'])->name('categories.update')->middleware('can:CATEGORY:WRITE');
     Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy')->middleware('can:CATEGORY:WRITE');
+
+    Route::get('/products', [ProductController::class, 'index'])->name('products.index')->middleware('can:PRODUCT:READ');
+    Route::post('/products', [ProductController::class, 'store'])->name('products.store')->middleware('can:PRODUCT:WRITE');
+    Route::put('/products/{product}', [ProductController::class, 'update'])->name('products.update')->middleware('can:PRODUCT:WRITE');
+    Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy')->middleware('can:PRODUCT:WRITE');
 });
 
 Route::post('/locale', [LocaleController::class, 'update'])->name('locale.update');
