@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\ProductController;
@@ -57,6 +58,11 @@ Route::middleware([
     Route::post('/products', [ProductController::class, 'store'])->name('products.store')->middleware('can:PRODUCT:WRITE');
     Route::put('/products/{product}', [ProductController::class, 'update'])->name('products.update')->middleware('can:PRODUCT:WRITE');
     Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy')->middleware('can:PRODUCT:WRITE');
+
+    Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index')->middleware('can:CUSTOMER:READ');
+    Route::post('/customers', [CustomerController::class, 'store'])->name('customers.store')->middleware('can:CUSTOMER:WRITE');
+    Route::put('/customers/{customer}', [CustomerController::class, 'update'])->name('customers.update')->middleware('can:CUSTOMER:WRITE');
+    Route::delete('/customers/{customer}', [CustomerController::class, 'destroy'])->name('customers.destroy')->middleware('can:CUSTOMER:WRITE');
 });
 
 Route::post('/locale', [LocaleController::class, 'update'])->name('locale.update');

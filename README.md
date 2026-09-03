@@ -398,14 +398,14 @@ Depends on `feature/categories` existing, since every product references one.
 
 ### Tasks
 
-- [ ] `Customer` model, migration - also seeds `CUSTOMER:READ`/`CUSTOMER:WRITE`, assigned to `ADMIN`
-- [ ] Factory
-- [ ] `StoreCustomerRequest`/`UpdateCustomerRequest`
-- [ ] `CustomerService::createCustomer()`, `updateCustomer()`, `deleteCustomer()`
-- [ ] `CustomerController`, routes protected as listed above
-- [ ] `Customers/Index.vue` + `Partials/Data.vue` + `Partials/Form.vue` (create/edit modal)
-- [ ] Pest feature tests and Playwright tests, including a permission-denied case
-- [ ] Vitest unit tests for `Customers/Partials/Data.vue` and `Partials/Form.vue`; a Vitest integration test composing `Index.vue` with both
+- [x] `Customer` model, migration - also seeds `CUSTOMER:READ`/`CUSTOMER:WRITE`, assigned to `ADMIN` - `email` is unique, matching the same reasoning `roles.role_name`/`categories.category_name` already established
+- [x] Factory
+- [x] `StoreCustomerRequest`/`UpdateCustomerRequest`
+- [x] `CustomerService::createCustomer()`, `updateCustomer()`, `deleteCustomer()`
+- [x] `CustomerController`, routes protected as listed above - `index` searches across `first_name`, `last_name`, and `email`
+- [x] `Customers/Index.vue` + `Partials/Data.vue` + `Partials/Form.vue` (create/edit modal)
+- [x] Pest feature tests and Playwright tests, including a permission-denied case
+- [x] Vitest unit tests for `Customers/Partials/Data.vue` and `Partials/Form.vue`; a Vitest integration test composing `Index.vue` with both
 
 ## feature/orders
 

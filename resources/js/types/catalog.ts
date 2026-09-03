@@ -12,3 +12,13 @@ export interface Product {
     category?: Category;
     created_at: string;
 }
+
+export interface Customer {
+    id: number;
+    first_name: string;
+    last_name: string;
+    telephone: string;
+    email: string;
+    address: string;
+    created_at: string;
+}
