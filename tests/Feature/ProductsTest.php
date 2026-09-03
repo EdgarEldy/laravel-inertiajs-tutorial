@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\Category;
+use App\Models\Customer;
+use App\Models\Order;
 use App\Models\Product;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -332,6 +334,19 @@ test('a user without PRODUCT:WRITE cannot delete a product', function () {
     $response = $this->actingAs($user)->delete("/products/{$product->id}");
 
     $response->assertForbidden();
+    $this->assertDatabaseHas('products', ['id' => $product->id]);
+});
+
+test('a user with PRODUCT:WRITE cannot delete a product that still has orders', function () {
+    $user = $this->userWithPermissions([['PRODUCT', 'WRITE']]);
+    $category = Category::factory()->create();
+    $product = Product::factory()->create(['category_id' => $category->id]);
+    $customer = Customer::factory()->create();
+    Order::factory()->create(['customer_id' => $customer->id, 'product_id' => $product->id]);
+
+    $response = $this->actingAs($user)->delete("/products/{$product->id}");
+
+    $response->assertSessionHasErrors('product');
     $this->assertDatabaseHas('products', ['id' => $product->id]);
 });
 
