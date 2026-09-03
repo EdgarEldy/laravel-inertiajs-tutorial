@@ -289,7 +289,7 @@ This project is bilingual, English and French, throughout - not an afterthought 
 - [x] Mail driver set to `smtp` against a local **MailHog** instance (`docker-compose.yml` service, SMTP on `1025`, web UI on `8025`) for local development - verification/reset emails are genuinely sent and inspectable in MailHog's inbox, without requiring a real mail provider
 - [x] Verify Jetstream's own pages work end to end before building anything new on top: register → verify email → login → enable 2FA → update profile
 - [x] Pest feature tests (Jetstream ships with its own, but confirm they run) covering registration, login, and email verification
-- [ ] `laravel-vue-i18n` installed and wired into `vite.config.js`; a language switcher added to `AppLayout.vue` posting to `POST /locale`; every Jetstream page (Login, Register, Profile, 2FA, ...) translated into `lang/en/`/`lang/fr/` - see [Internationalization](#internationalization)
+- [x] `laravel-vue-i18n` installed and wired into `vite.config.js`; a language switcher added to `AppLayout.vue` (and `AuthenticationCard.vue`, for pages before login) posting to `POST /locale`; every Jetstream page (Login, Register, Profile, 2FA, ...) translated into `lang/en.json`/`lang/fr.json` - see [Internationalization](#internationalization)
 
 ## feature/rbac
 
