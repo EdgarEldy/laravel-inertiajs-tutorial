@@ -350,15 +350,15 @@ Full CRUD for roles and permissions, plus user-role management. No page ever man
 
 ### Tasks
 
-- [ ] `Category` model, migration - the same migration seeds `CATEGORY:READ`/`CATEGORY:WRITE` permissions and assigns both to `ADMIN`, following the incremental-seeding convention set in `feature/rbac`
-- [ ] Factory
-- [ ] `StoreCategoryRequest`/`UpdateCategoryRequest`
-- [ ] `CategoryService::createCategory()`, `updateCategory()`, `deleteCategory()` - `deleteCategory` rejects if the category still has products (once `feature/products` exists)
-- [ ] `CategoryController` (`index`, `store`, `update`, `destroy`), each method thin: validate via the Form Request, delegate to `CategoryService`, redirect
-- [ ] Every route protected as listed above
-- [ ] `Categories/Index.vue` + `Partials/Data.vue` + `Partials/Form.vue` (create/edit modal - see [Create/Edit as modals, not pages](#createedit-as-modals-not-pages)), built from Jetstream's existing components, write actions hidden via the shared `can()` helper for users without `CATEGORY:WRITE`
-- [ ] Pest feature tests for every route including a permission-denied case, a Playwright test covering create → edit → delete through the actual rendered Vue pages
-- [ ] Vitest unit tests for `Categories/Partials/Data.vue` and `Partials/Form.vue`; a Vitest integration test composing `Index.vue` with both
+- [x] `Category` model, migration - the same migration seeds `CATEGORY:READ`/`CATEGORY:WRITE` permissions and assigns both to `ADMIN`, following the incremental-seeding convention set in `feature/rbac` - permission seeding lives in a dedicated `CategoryPermissionSeeder`, matching the pattern `PermissionSeeder` already established, rather than literally inside the migration's `up()`; `category_name` also carries a database-level unique constraint, matching `roles.role_name`/`permissions`' composite key
+- [x] Factory
+- [x] `StoreCategoryRequest`/`UpdateCategoryRequest`
+- [x] `CategoryService::createCategory()`, `updateCategory()`, `deleteCategory()` - `deleteCategory` does not yet reject on referential integrity, since `Product` doesn't exist on this branch; `feature/products` adds that check when it adds the relationship
+- [x] `CategoryController` (`index`, `store`, `update`, `destroy`), each method thin: validate via the Form Request, delegate to `CategoryService`, redirect
+- [x] Every route protected as listed above
+- [x] `Categories/Index.vue` + `Partials/Data.vue` + `Partials/Form.vue` (create/edit modal - see [Create/Edit as modals, not pages](#createedit-as-modals-not-pages)), built from Jetstream's existing components, write actions hidden via the shared `can()` helper for users without `CATEGORY:WRITE`
+- [x] Pest feature tests for every route including a permission-denied case, a Playwright test covering create → edit → delete through the actual rendered Vue pages
+- [x] Vitest unit tests for `Categories/Partials/Data.vue` and `Partials/Form.vue`; a Vitest integration test composing `Index.vue` with both
 
 ## feature/products
 
