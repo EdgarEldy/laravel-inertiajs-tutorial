@@ -3,14 +3,12 @@
 namespace App\Services;
 
 use App\Models\Customer;
+use Illuminate\Validation\ValidationException;
 
 /**
  * CRUD for customers. Like `CategoryService`/`ProductService`, this is not
  * one of the RBAC services and does not use `LogsAuditEvents` - audit
- * logging in this project is scoped to RBAC mutations only. No
- * referential-integrity check on delete: nothing references `Customer` on
- * this branch yet - `feature/orders` will add that check the same way
- * `feature/products` added one to `CategoryService::deleteCategory()`.
+ * logging in this project is scoped to RBAC mutations only.
  */
 class CustomerService
 {
@@ -38,8 +36,22 @@ class CustomerService
         return $customer;
     }
 
+    /**
+     * Rejects deletion if the customer still has any orders - same
+     * referential-integrity pattern as
+     * `CategoryService::deleteCategory()`: a `ValidationException`
+     * surfaces as a redirect-back field error instead of letting the
+     * database's own `restrictOnDelete()` foreign key raise a raw query
+     * exception up to the user.
+     */
     public function deleteCustomer(Customer $customer): void
     {
+        if ($customer->orders()->exists()) {
+            throw ValidationException::withMessages([
+                'customer' => 'This customer still has orders and cannot be deleted.',
+            ]);
+        }
+
         $customer->delete();
     }
 }
