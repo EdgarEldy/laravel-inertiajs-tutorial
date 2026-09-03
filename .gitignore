@@ -16,6 +16,13 @@
 /public/build
 /public/hot
 /public/storage
+/test-results
+/playwright-report
+/blob-report
+/resources/js/actions
+/resources/js/routes
+/resources/js/wayfinder
+lang/php_*.json
 /storage/*.key
 /storage/pail
 /vendor
