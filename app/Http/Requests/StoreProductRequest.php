@@ -30,7 +30,7 @@ class StoreProductRequest extends FormRequest
                 'max:255',
                 Rule::unique('products', 'product_name')->where('category_id', $this->input('category_id')),
             ],
-            'unit_price' => ['required', 'numeric', 'min:0'],
+            'unit_price' => ['required', 'numeric', 'min:0', 'max:99999999.99'],
         ];
     }
 }

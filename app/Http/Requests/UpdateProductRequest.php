@@ -32,7 +32,7 @@ class UpdateProductRequest extends FormRequest
                     ->where('category_id', $this->input('category_id'))
                     ->ignore($this->route('product')),
             ],
-            'unit_price' => ['required', 'numeric', 'min:0'],
+            'unit_price' => ['required', 'numeric', 'min:0', 'max:99999999.99'],
         ];
     }
 }
