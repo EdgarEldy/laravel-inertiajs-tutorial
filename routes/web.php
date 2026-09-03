@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\RoleController;
@@ -45,6 +46,11 @@ Route::middleware([
     Route::post('/permissions', [PermissionController::class, 'store'])->name('permissions.store')->middleware('can:PERMISSION:WRITE');
     Route::put('/permissions/{permission}', [PermissionController::class, 'update'])->name('permissions.update')->middleware('can:PERMISSION:WRITE');
     Route::delete('/permissions/{permission}', [PermissionController::class, 'destroy'])->name('permissions.destroy')->middleware('can:PERMISSION:WRITE');
+
+    Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index')->middleware('can:CATEGORY:READ');
+    Route::post('/categories', [CategoryController::class, 'store'])->name('categories.store')->middleware('can:CATEGORY:WRITE');
+    Route::put('/categories/{category}', [CategoryController::class, 'update'])->name('categories.update')->middleware('can:CATEGORY:WRITE');
+    Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy')->middleware('can:CATEGORY:WRITE');
 });
 
 Route::post('/locale', [LocaleController::class, 'update'])->name('locale.update');
