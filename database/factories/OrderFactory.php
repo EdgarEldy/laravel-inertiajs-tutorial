@@ -22,13 +22,20 @@ class OrderFactory extends Factory
     public function definition(): array
     {
         $quantity = fake()->numberBetween(1, 10);
-        $unitPrice = fake()->randomFloat(2, 1, 500);
+
+        // Created eagerly (not the lazy Product::factory() other factories
+        // use for a belongsTo) specifically so total below can be computed
+        // from this product's own actual unit_price, keeping the same
+        // quantity * unit_price invariant OrderService::placeOrder() itself
+        // guarantees - a factory-generated order should never disagree with
+        // the product it references.
+        $product = Product::factory()->create();
 
         return [
             'customer_id' => Customer::factory(),
-            'product_id' => Product::factory(),
+            'product_id' => $product->id,
             'quantity' => $quantity,
-            'total' => $quantity * $unitPrice,
+            'total' => $quantity * $product->unit_price,
         ];
     }
 }
