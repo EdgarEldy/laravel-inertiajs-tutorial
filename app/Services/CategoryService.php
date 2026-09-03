@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Category;
+use Illuminate\Validation\ValidationException;
 
 /**
  * CRUD for categories. Unlike `RoleService`/`PermissionService`/`UserService`,
@@ -28,13 +29,22 @@ class CategoryService
     }
 
     /**
-     * No referential-integrity check yet - `Product` doesn't exist on this
-     * branch. `feature/products` updates this method to reject deletion if
-     * the category still has products, following the same pattern as
-     * `RoleService::deleteRole()`/`PermissionService::deletePermission()`.
+     * Rejects deletion if the category still has any products - it must be
+     * emptied (or its products reassigned/deleted) first. Follows the same
+     * referential-integrity pattern as
+     * `RoleService::deleteRole()`/`PermissionService::deletePermission()`:
+     * a `ValidationException` surfaces as a redirect-back field error
+     * instead of letting the database's own `restrictOnDelete()` foreign
+     * key raise a raw query exception up to the user.
      */
     public function deleteCategory(Category $category): void
     {
+        if ($category->products()->exists()) {
+            throw ValidationException::withMessages([
+                'category' => 'This category still has products and cannot be deleted.',
+            ]);
+        }
+
         $category->delete();
     }
 }

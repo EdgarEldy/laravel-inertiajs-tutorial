@@ -375,15 +375,15 @@ Depends on `feature/categories` existing, since every product references one.
 
 ### Tasks
 
-- [ ] `Product` model, migration - also seeds `PRODUCT:READ`/`PRODUCT:WRITE`, assigned to `ADMIN`
-- [ ] Factory
-- [ ] `StoreProductRequest`/`UpdateProductRequest`
-- [ ] `ProductService::createProduct()`, `updateProduct()`, `deleteProduct()`
-- [ ] `CategoryService::deleteCategory()` updated: rejects deletion if the category still has products
-- [ ] `ProductController`, routes protected as listed above
-- [ ] `Products/Index.vue` (with a category filter dropdown) + `Partials/Data.vue` + `Partials/Form.vue` (create/edit modal)
-- [ ] Pest feature tests and Playwright tests, including the category-deletion rejection case and a permission-denied case
-- [ ] Vitest unit tests for `Products/Partials/Data.vue` (including the category filter) and `Partials/Form.vue`; a Vitest integration test composing `Index.vue` with both
+- [x] `Product` model, migration - also seeds `PRODUCT:READ`/`PRODUCT:WRITE`, assigned to `ADMIN` - permission seeding via a dedicated `ProductPermissionSeeder`, matching the established pattern; `category_id` + `product_name` unique together (not `product_name` alone, since two different categories reasonably have same-named products), `category_id` uses `restrictOnDelete()`
+- [x] Factory
+- [x] `StoreProductRequest`/`UpdateProductRequest`
+- [x] `ProductService::createProduct()`, `updateProduct()`, `deleteProduct()`
+- [x] `CategoryService::deleteCategory()` updated: rejects deletion if the category still has products
+- [x] `ProductController`, routes protected as listed above
+- [x] `Products/Index.vue` (with a category filter dropdown) + `Partials/Data.vue` + `Partials/Form.vue` (create/edit modal)
+- [x] Pest feature tests and Playwright tests, including the category-deletion rejection case and a permission-denied case
+- [x] Vitest unit tests for `Products/Partials/Data.vue` (including the category filter) and `Partials/Form.vue`; a Vitest integration test composing `Index.vue` with both
 
 ## feature/customers
 
