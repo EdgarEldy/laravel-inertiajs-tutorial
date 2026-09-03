@@ -29,6 +29,7 @@ class UpdateCustomerRequest extends FormRequest
             'email' => [
                 'required',
                 'email',
+                'max:255',
                 Rule::unique('customers', 'email')->ignore($this->route('customer')),
             ],
             'address' => ['required', 'string', 'max:255'],
