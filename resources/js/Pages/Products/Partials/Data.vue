@@ -23,7 +23,10 @@ const emit = defineEmits<{
 }>();
 
 const search = ref(props.search);
-const categoryFilter = ref<string>(props.category ? String(props.category) : '');
+// Typed as number | '' rather than string: the <select>'s :value="cat.id"
+// bindings mean v-model assigns a real number the moment the user picks a
+// category, not the string the initial value below might suggest.
+const categoryFilter = ref<number | ''>(props.category ?? '');
 
 const runSearch = () => {
     router.get(ProductController.index.url(), {
