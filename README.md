@@ -199,7 +199,7 @@ laravel-inertia-vue-tutorial/
 │   │   ├── ..._create_customers_table.php    (feature/customers: also seeds CUSTOMER:READ/WRITE, assigned to ADMIN)
 │   │   └── ..._create_orders_table.php       (feature/orders: also seeds ORDER:READ/WRITE, assigned to ADMIN)
 │   ├── seeders/
-│   │   └── RbacPermissionSeeder.php          (feature/rbac's own permissions only: ROLE:*, PERMISSION:*, USER:*)
+│   │   └── PermissionSeeder.php              (feature/rbac's own permissions only: ROLE:*, PERMISSION:*, USER:*)
 │   └── factories/
 │       ├── RoleFactory.php, PermissionFactory.php
 │       ├── CategoryFactory.php, ProductFactory.php, CustomerFactory.php, OrderFactory.php
@@ -323,7 +323,7 @@ Full CRUD for roles and permissions, plus user-role management. No page ever man
 - [ ] `User` model extended: `roles()` (`belongsToMany(Role::class, 'role_user')`), `hasPermission(string $resource, string $action): bool`
 - [ ] `AuthServiceProvider`: `Gate::before` closure implementing the `RESOURCE:ACTION` permission check described [above](#how-permissions-are-checked)
 - [ ] `AssignDefaultRoleOnRegistration` listener, registered against Jetstream's `Registered` event: assigns `ADMIN` to the first user ever created, `USER` to everyone after
-- [ ] `RbacPermissionSeeder`: seeds only this branch's own permissions (`ROLE:READ`, `ROLE:WRITE`, `PERMISSION:READ`, `PERMISSION:WRITE`, `USER:READ`, `USER:WRITE`), assigned to a seeded `ADMIN` role - later branches seed their own resource's permissions from their own migrations rather than all being declared here up front
+- [ ] `PermissionSeeder`: seeds only this branch's own permissions (`ROLE:READ`, `ROLE:WRITE`, `PERMISSION:READ`, `PERMISSION:WRITE`, `USER:READ`, `USER:WRITE`), assigned to a seeded `ADMIN` role - later branches seed their own resource's permissions from their own migrations rather than all being declared here up front
 - [ ] `AuditLogger` service, with a single `log(string $action, string $entityType, int $entityId, array $details = [])` method
 - [ ] `Services/Concerns/LogsAuditEvents.php` trait: `logCreated`/`logUpdated`/`logDeleted`/`logAssigned`/`logRemoved` helpers wrapping `AuditLogger::log()`, mixed into `RoleService`, `PermissionService`, `UserService`
 - [ ] `RoleService::createRole()`, `updateRole()`, `deleteRole()` - `deleteRole` rejects if any user is still assigned this role (must be unassigned first)
@@ -335,6 +335,7 @@ Full CRUD for roles and permissions, plus user-role management. No page ever man
 - [ ] `HandleInertiaRequests` shares the current user's permission list globally (`auth.permissions`), so Vue pages can conditionally render actions the user isn't allowed to take, backed by a small `can(permission)` helper - a UI convenience only, the server-side `Gate::before` check is what's actually authoritative
 - [ ] Pest unit tests on the RBAC services' own logic where isolation is informative (e.g. the `LogsAuditEvents` payload shape); Pest feature tests: full CRUD on roles and permissions, role assignment/removal on a user, permission assignment/removal on a role, the `Gate::before` hook allowing/denying correctly, the registration listener assigning `ADMIN` only to the first user, and specifically the last-admin rejection triggered both ways (removing the role from the last user, and removing the permission from the role that was their only source of it)
 - [ ] Vitest unit tests for `Roles/Partials/Data.vue`, `Roles/Partials/Form.vue`, `Permissions/Partials/Data.vue`, `Permissions/Partials/Form.vue`; a Vitest integration test composing `Index.vue` with its real `Data`/`Form` children for at least one resource
+- [x] Every RBAC page (`Roles/Index.vue`, `Roles/Permissions.vue`, `Permissions/Index.vue`, `Users/Index.vue`, `Users/Show.vue`, their `Partials/Data.vue`/`Partials/Form.vue`) and the `Users`/`Roles`/`Permissions` nav links in `AppLayout.vue` translated via `$t()`, with both `lang/en.json` and `lang/fr.json` updated - this branch predates the bilingual requirement added mid-development, so it is retrofitted here rather than left English-only
 
 ## feature/categories
 
