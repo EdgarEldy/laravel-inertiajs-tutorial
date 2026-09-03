@@ -20,6 +20,28 @@ const emit = defineEmits(['close']);
 const dialog = ref();
 const showSlot = ref(props.show);
 
+// A Modal that mounts with `show` already `true` (any caller that keys its
+// Form/Modal on the editing target's id, forcing a fresh instance per edit
+// rather than reusing one - see Roles/Index.vue, Permissions/Index.vue)
+// needs to open itself on mount: the watch() below only reacts to `show`
+// *changing*, and a freshly mounted instance's prop never "changes" from
+// its own initial value, so dialog.showModal() would otherwise never be
+// called at all - the native <dialog> silently stays closed (`open`
+// attribute never set), no error, no visible sign anything is wrong. This
+// is deliberately a separate onMounted, not watch(..., { immediate: true }):
+// an immediate watcher still runs its full body (including the `else`
+// branch's deferred close/showSlot reset) even when `show` starts `false`,
+// which races a subsequent legitimate open against a stale setTimeout that
+// closes it again 200ms later. onMounted only ever runs the "open" half,
+// and only when there's actually something to open.
+onMounted(() => {
+    if (props.show) {
+        document.body.style.overflow = 'hidden';
+        showSlot.value = true;
+        dialog.value?.showModal();
+    }
+});
+
 watch(() => props.show, () => {
     if (props.show) {
         document.body.style.overflow = 'hidden';
