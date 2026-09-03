@@ -9,8 +9,9 @@ import type { Customer, Order, Product } from '@/types/catalog';
 
 defineProps<{
     orders: Paginated<Order>;
-    customers: Customer[];
-    products: Product[];
+    // Only id + display name - see OrderController::index()'s own comment.
+    customers: Pick<Customer, 'id' | 'first_name' | 'last_name'>[];
+    products: Pick<Product, 'id' | 'product_name'>[];
 }>();
 
 // Orders are create-only: no `editingOrder` state, no `edit` event to wire

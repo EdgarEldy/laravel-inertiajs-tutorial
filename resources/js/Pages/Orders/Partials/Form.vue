@@ -12,8 +12,10 @@ import type { Customer, Product } from '@/types/catalog';
 
 const props = defineProps<{
     show: boolean;
-    customers: Customer[];
-    products: Product[];
+    // Only id + display name - see OrderController::index()'s own comment
+    // for why the full Customer/Product shape is never sent here.
+    customers: Pick<Customer, 'id' | 'first_name' | 'last_name'>[];
+    products: Pick<Product, 'id' | 'product_name'>[];
 }>();
 
 const emit = defineEmits<{

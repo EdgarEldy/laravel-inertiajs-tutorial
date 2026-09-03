@@ -3,9 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreOrderRequest;
-use App\Http\Resources\CustomerResource;
 use App\Http\Resources\OrderResource;
-use App\Http\Resources\ProductResource;
 use App\Models\Customer;
 use App\Models\Order;
 use App\Models\Product;
@@ -34,8 +32,14 @@ class OrderController extends Controller
 
         return Inertia::render('Orders/Index', [
             'orders' => $orders,
-            'customers' => CustomerResource::collection(Customer::query()->orderBy('first_name')->orderBy('last_name')->get())->resolve(),
-            'products' => ProductResource::collection(Product::query()->orderBy('product_name')->get())->resolve(),
+            // A user only needs ORDER:READ to reach this page, not
+            // CUSTOMER:READ/PRODUCT:READ - the create form's selects only
+            // ever display an id and a name, so only those columns are
+            // sent, not the full CustomerResource/ProductResource (which
+            // would leak telephone/email/address to anyone who can place
+            // an order but was never granted access to customer records).
+            'customers' => Customer::query()->orderBy('first_name')->orderBy('last_name')->get(['id', 'first_name', 'last_name']),
+            'products' => Product::query()->orderBy('product_name')->get(['id', 'product_name']),
         ]);
     }
 
